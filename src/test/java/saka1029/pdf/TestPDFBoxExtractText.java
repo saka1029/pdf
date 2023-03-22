@@ -6,14 +6,12 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
-import org.apache.pdfbox.text.TextPosition;
 import org.junit.Test;
 
-public class TestExtractText {
+public class TestPDFBoxExtractText {
 	
 	static {
 	    System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.NoOpLog");
@@ -27,10 +25,12 @@ public class TestExtractText {
 			super();
 		}
 		
-		@Override
-		protected void processTextPosition(TextPosition text) {
-			out.println(text);
-		}
+		// これをオーバーライドすると文字単位に位置、フォント、フォントサイズなどの
+        // 情報を処理できる。
+//		@Override
+//		protected void processTextPosition(TextPosition text) {
+//			out.println(text);
+//		}
 		
 	}
 	static void extractText(File pdfFile, File textFile) throws IOException {
