@@ -47,8 +47,8 @@ public class TestPDFBoxExtractText {
 
 	@Test
 	public void testExtractText() throws IOException {
-		extractText(new File("data/tuti.pdf"), new File("data/tuti.txt"));
-		extractText(new File("data/kokuji.pdf"), new File("data/kokuji.txt"));
+		extractText(new File("data/tuti.pdf"), new File("data/pdfbox-tuti.txt"));
+		extractText(new File("data/kokuji.pdf"), new File("data/pdfbox-kokuji.txt"));
 	}
 
 }
