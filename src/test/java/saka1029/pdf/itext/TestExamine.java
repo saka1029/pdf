@@ -1,4 +1,4 @@
-package saka1029.pdf;
+package saka1029.pdf.itext;
 
 import java.io.Closeable;
 import java.io.FileWriter;
@@ -16,7 +16,7 @@ import com.itextpdf.text.pdf.parser.PdfReaderContentParser;
 import com.itextpdf.text.pdf.parser.TextExtractionStrategy;
 import com.itextpdf.text.pdf.parser.TextRenderInfo;
 
-public class TestITextExamine {
+public class TestExamine {
 
     /*
      * 【横書きPDFファイルの場合】
@@ -82,5 +82,4 @@ public class TestITextExamine {
     public void testExamineKokuji() throws IOException {
         examine("data/kokuji.pdf", "data/kokuji-itext-examine.txt");
     }
-
 }

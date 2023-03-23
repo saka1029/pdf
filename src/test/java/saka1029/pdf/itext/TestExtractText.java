@@ -1,4 +1,4 @@
-package saka1029.pdf;
+package saka1029.pdf.itext;
 
 import java.io.Closeable;
 import java.io.FileOutputStream;
@@ -17,7 +17,7 @@ import com.itextpdf.text.pdf.parser.SimpleTextExtractionStrategy;
 import com.itextpdf.text.pdf.parser.TextExtractionStrategy;
 import com.itextpdf.text.pdf.parser.TextRenderInfo;
 
-public class TestITextExtractText {
+public class TestExtractText {
 
     static final PrintWriter out = new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8), true);
 
