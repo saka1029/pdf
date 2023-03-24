@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -13,6 +14,7 @@ import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.junit.Test;
@@ -28,6 +30,11 @@ public class TestStatistics {
 
     static final PrintWriter out = new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8), true);
     static final int PAGE_WIDTH = 600, PAGE_HEIGHT = 850;
+    static final Pattern HIRAGANA = Pattern.compile("\\p{IsHiragana}+");
+
+    static boolean isHiragana(String s) {
+    	return HIRAGANA.matcher(s).matches();
+    }
 
     static class Text implements Comparable<Text> {
     	final int x, y, width;
@@ -53,72 +60,88 @@ public class TestStatistics {
 		@Override
 		public String toString() {
 			return "%dx%d:%d:%s".formatted(x, y, width, text);
-//			return text;
 		}
     }
 
     static class Page {
-        final NavigableMap<Integer, NavigableSet<Text>> texts = new TreeMap<>();
+    	final int pageNo;
+        final NavigableMap<Integer, Line> lines = new TreeMap<>();
         final boolean horizontal;
-        final Map<Integer, Integer> widthHistogram = new HashMap<>();
+        final int maxWidth;
         
-        Page(PdfReaderContentParser parser, int i, boolean horizontal) throws IOException {
-        	this.horizontal = horizontal;
-        	parser.processContent(i, new TextExtractionStrategy() {
-				@Override
-				public void renderText(TextRenderInfo renderInfo) {
-		        	if (renderInfo.getText().isBlank())
-		        		return;
-					Text t = new Text(renderInfo, horizontal);
-					if (!t.text.isBlank())
-						widthHistogram.compute(t.width / t.text.length(), (k, v) -> v == null ? 1 : v + 1);
-					texts.computeIfAbsent(t.y, k -> new TreeSet<>()).add(t);
-				}
+		class Line {
+			final NavigableSet<Text> texts = new TreeSet<>();
+			int maxWidth = 2;
+			
+			void add(Text text) {
+				texts.add(text);
+				if (!text.text.isBlank())
+					maxWidth = Math.max(maxWidth, text.width / text.text.length());
+			}
+			
+			@Override
+			public String toString() {
+				int pageMaxWidth = Page.this.maxWidth;
+				return "max width=" + maxWidth + " ".repeat(Math.abs(texts.iterator().next().x) / (pageMaxWidth / 2))
+					+ texts.stream().map(t -> t.text).collect(Collectors.joining());
+			}
+		}
 
-				@Override
-				public void beginTextBlock() {
-				}
+        class Listener implements TextExtractionStrategy {
 
-				@Override
-				public void endTextBlock() {
-				}
+			@Override
+			public void renderText(TextRenderInfo renderInfo) {
+				if (renderInfo.getText().isBlank())
+					return;
+				Text t = new Text(renderInfo, horizontal);
+				lines.computeIfAbsent(t.y, k -> new Line()).add(t);
+			}
 
-				@Override
-				public void renderImage(ImageRenderInfo renderInfo) {
-				}
+			@Override
+			public void beginTextBlock() {
+			}
 
-				@Override
-				public String getResultantText() {
-					return null;
-				}
-        	});
+			@Override
+			public void endTextBlock() {
+			}
+
+			@Override
+			public void renderImage(ImageRenderInfo renderInfo) {
+			}
+
+			@Override
+			public String getResultantText() {
+				return null;
+			}
         }
 
+        Page(PdfReaderContentParser parser, int pageNo, boolean horizontal) throws IOException {
+        	this.pageNo = pageNo;
+        	this.horizontal = horizontal;
+        	parser.processContent(pageNo, new Listener());
+        	this.maxWidth = lines.values().stream()
+        		.mapToInt(line -> line.maxWidth)
+        		.max().getAsInt();
+        }
         
-        int mostFrequentryWidth() {
-        	Entry<Integer, Integer> max = Map.entry(0, 0);
-        	for (Entry<Integer, Integer> e : widthHistogram.entrySet())
-				if (e.getValue() > max.getValue())
-					max = e;
-        	return max.getKey();
+        @Override
+        public String toString() {
+        	StringBuilder sb = new StringBuilder();
+            sb.append("page max width=" +maxWidth).append(System.lineSeparator());
+        	for (Entry<Integer, Line> e : lines.entrySet())
+				sb.append(pageNo + "@" + e.getKey() + ":" + e.getValue() + System.lineSeparator());
+        	return sb.toString();
         }
     }
 
     static void examine(String pdfFile, String outFile, boolean horizontal) throws IOException {
         PdfReader reader = new PdfReader(pdfFile);
         PdfReaderContentParser parser = new PdfReaderContentParser(reader);
-//        List<NavigableMap<Integer, NavigableSet<Text>>> doc = new ArrayList<>();
         try (Closeable pdr = () -> reader.close();
             PrintWriter out = new PrintWriter(new FileWriter(outFile))) {
             for (int i = 1, size = reader.getNumberOfPages(); i <= size; i++) {
             	Page page = new Page(parser, i, horizontal);
-                int mostFrequentryWidth = page.mostFrequentryWidth();
-                out.println("width histogram: " + page.widthHistogram + " most freq width=" + mostFrequentryWidth);
-                int halfSpaceWidth = mostFrequentryWidth / 2;
-                for (Entry<Integer, NavigableSet<Text>> e : page.texts.entrySet())
-                	out.println(i + "@" + e.getKey() + ":"
-                	+ " ".repeat(Math.abs(e.getValue().iterator().next().x) / halfSpaceWidth)
-                	+ e.getValue().stream().map(x -> x.text).collect(Collectors.joining()));
+            	out.print(page);
             }
         }
     }
