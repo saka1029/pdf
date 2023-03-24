@@ -155,4 +155,9 @@ public class TestStatistics {
     public void testExamineKokuji() throws IOException {
         examine("data/kokuji.pdf", "data/kokuji-itext-statistics.txt", false);
     }
+    
+    @Test
+    public void testHiragana() {
+        out.println("あゐいうぁぃか".matches("\\p{IsHiragana}+"));
+    }
 }

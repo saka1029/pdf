@@ -1,4 +1,4 @@
-package saka1029.pdf;
+package saka1029.pdf.pdfbox;
 
 import java.io.File;
 import java.io.FileWriter;
