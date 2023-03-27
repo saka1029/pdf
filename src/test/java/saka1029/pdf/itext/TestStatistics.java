@@ -12,7 +12,6 @@ import java.util.NavigableSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import org.junit.Test;
 
@@ -56,7 +55,7 @@ public class TestStatistics {
 		
 		@Override
 		public String toString() {
-			return "%dx%d:%d:%s".formatted(x, y, width, text);
+			return "%dx%d:%d:%s:%s".formatted(x, y, width, isHiragana(text), text);
 		}
     }
 
@@ -69,18 +68,35 @@ public class TestStatistics {
 		class Line {
 			final NavigableSet<Text> texts = new TreeSet<>();
 			int maxWidth = 2;
+            boolean isHiragana = true;
 			
 			void add(Text text) {
 				texts.add(text);
-				if (!text.text.isBlank())
+				if (!text.text.isBlank()) {
 					maxWidth = Math.max(maxWidth, text.width / text.text.length());
+                    isHiragana = isHiragana && isHiragana(text.text);
+				}
+			}
+			
+			String textString() {
+				float halfWidth = Page.this.maxWidth / 2.0F;
+				int position = 0;
+				StringBuilder sb = new StringBuilder();
+				for (Text text : texts) {
+				    int spaces = (int)((text.x - position) / halfWidth);
+				    if (spaces > 0)
+                        sb.append(" ".repeat(spaces));
+				    sb.append(text.text);
+				    position = text.x + text.width;
+				}
+				return sb.toString();
 			}
 			
 			@Override
 			public String toString() {
 				int pageMaxWidth = Page.this.maxWidth;
-				return "max width=" + maxWidth + " ".repeat(Math.abs(texts.iterator().next().x) / (pageMaxWidth / 2))
-					+ texts.stream().map(t -> t.text).collect(Collectors.joining());
+				String size = maxWidth > pageMaxWidth * 0.6 ? "大" : isHiragana ? "振" : "小";
+				return "%02d(%s)%s".formatted(maxWidth, size, textString());
 			}
 		}
 
@@ -126,7 +142,7 @@ public class TestStatistics {
         	StringBuilder sb = new StringBuilder();
             sb.append("page max width=" +maxWidth).append(System.lineSeparator());
         	for (Entry<Integer, Line> e : lines.entrySet())
-				sb.append(pageNo + "@" + e.getKey() + ":" + e.getValue() + System.lineSeparator());
+				sb.append("%03d@%03d:%s%n".formatted(pageNo, e.getKey(), e.getValue()));
         	return sb.toString();
         }
     }
