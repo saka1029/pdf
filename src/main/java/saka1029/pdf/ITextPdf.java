@@ -87,6 +87,24 @@ public class ITextPdf {
 			this.maxWidth = lines.values().stream().mapToInt(line -> line.maxWidth).max().getAsInt();
 			mergeLines();
 		}
+		
+		void mergeLines(Entry<Integer, Line> big1, Entry<Integer, Line> big2, List<Entry<Integer, Line>> smallTemp) {
+		    if (big1 == null && big2 == null)
+		        return;
+		    for (Entry<Integer, Line> s : smallTemp) {
+		        if (s.getValue().text().matches(pagePattern)) // ページ番号の場合追加しない。
+		            continue;
+                int sp = s.getKey();
+                // 最も近い大文字行を特定する。
+                Line nearBig = big1 == null ? big2.getValue()
+                    : big2 == null ? big1.getValue()
+                    : Math.abs(big1.getKey() - sp) < Math.abs(big2.getKey() - sp) ? big1.getValue()
+                    : big2.getValue();
+                for (Text t : s.getValue().texts)
+                    if (!t.isHiragana())    // ルビの場合は追加しない。
+                        nearBig.add(new Text(t, -t.y));
+		    }
+		}
         
 		/**
 		 * 小文字の行を大文字の行にマージする。
@@ -100,30 +118,12 @@ public class ITextPdf {
         	        smalls.add(line);
         	        smallTemp.add(line);
         	    } else {  // 大文字行の場合、未処理の小文字行をマージする。
-                    for (Entry<Integer, Line> s : smallTemp) {
-                        if (s.getValue().text().matches(pagePattern)) // ページ番号の場合追加しない。
-                            continue;
-                        int sp = s.getKey();
-                        // 最も近い大文字行を特定する。
-                        Line nearBig = big == null ? line.getValue()
-                            : Math.abs(big.getKey() - sp) < Math.abs(line.getKey() - sp) ? big.getValue()
-                            : line.getValue();
-                        for (Text t : s.getValue().texts)
-                            if (!t.isHiragana())    // ルビの場合は追加しない。
-                                nearBig.add(new Text(t, -t.y));
-                    }
+        	        mergeLines(big, line, smallTemp);
                     smallTemp.clear();
         	        big = line;
         	    }
         	}
-        	if (big != null)
-                for (Entry<Integer, Line> s : smallTemp) {
-                    if (s.getValue().text().matches(pagePattern)) // ページ番号の場合追加しない。
-                        continue;
-                    for (Text t : s.getValue().texts)
-                        if (!t.isHiragana())    // ルビの場合は追加しない。
-                            big.getValue().add(new Text(t, -t.y));
-                }
+        	mergeLines(big, null, smallTemp);
         	// マージしたすべての小文字行を削除する。
         	for (Entry<Integer, Line> line : smalls)
         	    lines.remove(line.getKey());
