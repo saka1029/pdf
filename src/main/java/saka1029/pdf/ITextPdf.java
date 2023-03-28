@@ -23,6 +23,7 @@ public class ITextPdf {
 	// 595.44 x 841.68 ポイント
 	static final int PAGE_WIDTH = 596, PAGE_HEIGHT = 842;
 	static final String DEFAULT_PAGE_PATTERN = " *- *\\d+ *- *";
+	static final String NEWLINE = "\n";
 
 	final String filename;
 	final boolean horizontal;
@@ -46,8 +47,19 @@ public class ITextPdf {
 
 	void parse(PdfReader reader) throws IOException {
 		PdfReaderContentParser parser = new PdfReaderContentParser(reader);
-		for (int i = 1; i < numberOfPages; ++i)
+		for (int i = 1; i <= numberOfPages; ++i)
 			pages.add(new Page(parser, i));
+	}
+	
+	public String text() {
+		StringBuilder sb = new StringBuilder();
+		for (int i = 1; i <= numberOfPages; ++i) {
+			Page page = pages.get(i - 1);
+			sb.append("# %s page: %d%s".formatted(filename, i, NEWLINE));
+			for (Page.Line line : page.lines.values())
+				sb.append(line.text()).append(NEWLINE);
+		}
+		return sb.toString();
 	}
 
 	class Page {
@@ -74,7 +86,7 @@ public class ITextPdf {
         	        smallTemp.add(line);
         	    } else {  // 大文字行の場合、未処理の小文字行をマージする。
                     for (Entry<Integer, Line> s : smallTemp) {
-                        if (s.getValue().string().matches(pagePattern)) // ページ番号の場合追加しない。
+                        if (s.getValue().text().matches(pagePattern)) // ページ番号の場合追加しない。
                             continue;
                         int sp = s.getKey();
                         // 最も近い大文字行を特定する。
@@ -83,7 +95,6 @@ public class ITextPdf {
                             : line.getValue();
                         for (Text t : s.getValue().texts)
                             if (!t.isHiragana())    // ルビの場合は追加しない。
-//                            if (!t.text.matches("\\p{IsHiragana}+"))    // ルビの場合は追加しない。
                                 nearBig.add(new Text(t, -t.y));
                     }
                     smallTemp.clear();
@@ -92,7 +103,7 @@ public class ITextPdf {
         	}
         	if (big != null)
                 for (Entry<Integer, Line> s : smallTemp) {
-                    if (s.getValue().string().matches(pagePattern)) // ページ番号の場合追加しない。
+                    if (s.getValue().text().matches(pagePattern)) // ページ番号の場合追加しない。
                         continue;
                     for (Text t : s.getValue().texts)
                         if (!t.isHiragana())    // ルビの場合は追加しない。
@@ -148,7 +159,11 @@ public class ITextPdf {
 				return maxWidth <= Page.this.maxWidth * 0.6;
 			}
 			
-			String string() {
+			/**
+			 * テキストを連結して１行分の文字列を返します。
+			 * テキストの間隔により、適宜半角スペースをは挿入します。
+			 */
+			String text() {
 				float halfWidth = Page.this.maxWidth / 2.0F;
 				int position = 0;
 				StringBuilder sb = new StringBuilder();
