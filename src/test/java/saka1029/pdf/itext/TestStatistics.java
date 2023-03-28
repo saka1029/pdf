@@ -6,12 +6,13 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.regex.Pattern;
 
 import org.junit.Test;
 
@@ -25,37 +26,58 @@ import com.itextpdf.text.pdf.parser.TextRenderInfo;
 public class TestStatistics {
 
     static final PrintWriter out = new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8), true);
-    static final int PAGE_WIDTH = 600, PAGE_HEIGHT = 850;
-    static final Pattern HIRAGANA = Pattern.compile("\\p{IsHiragana}+");
-
-    static boolean isHiragana(String s) {
-    	return HIRAGANA.matcher(s).matches();
-    }
+    // A4のポイントサイズ
+    // 横約8.27 × 縦約11.69 インチ
+    // 595.44 x 841.68 ポイント
+    static final int PAGE_WIDTH = 596, PAGE_HEIGHT = 842;
+//    static final Pattern HIRAGANA = Pattern.compile("\\p{IsHiragana}+");
+//
+//    static boolean isHiragana(String s) {
+//    	return HIRAGANA.matcher(s).matches();
+//    }
 
     static class Text implements Comparable<Text> {
-    	final int x, y, width;
+    	final int x, y, width, extra;
     	final String text;
     	
     	static int round(float f) {
     		return Math.round(f);
     	}
 
+    	Text(int x, int y, int width, String text, int extra) {
+    	    this.x = x;
+    	    this.y = y;
+    	    this.width = width;
+    	    this.extra = extra;
+    	    this.text = text;
+    	}
+
+    	Text(Text text, int extra) {
+    	    this(text.x, text.y, text.width, text.text, extra);
+    	}
+
+    	static Rectangle2D.Float box(TextRenderInfo info) {
+            return info.getAscentLine().getBoundingRectange();
+    	}
+    	
     	Text(TextRenderInfo info, boolean horizontal) {
-            Rectangle2D.Float box = info.getAscentLine().getBoundingRectange();
-			this.x = round(horizontal ? box.x : PAGE_HEIGHT - box.y);
-			this.y = round(horizontal ? PAGE_HEIGHT - box.y : PAGE_WIDTH - box.x);
-            this.width = round(box.width);
-            this.text = info.getText();
+    	    this(round(horizontal ? box(info).x : PAGE_HEIGHT - box(info).y),
+    	        round(horizontal ? PAGE_HEIGHT - box(info).y : PAGE_WIDTH - box(info).x),
+    	        round(box(info).width),
+    	        info.getText(), 0);
     	}
 
 		@Override
 		public int compareTo(Text o) {
-			return Integer.compare(x, o.x);
+			int r = Integer.compare(x, o.x);
+			if (r == 0)
+			    r = Integer.compare(extra, o.extra);
+			return r;
 		}
 		
 		@Override
 		public String toString() {
-			return "%dx%d:%d:%s:%s".formatted(x, y, width, isHiragana(text), text);
+			return "%dx%d:%d:%s".formatted(x, y, width, text);
 		}
     }
 
@@ -68,14 +90,11 @@ public class TestStatistics {
 		class Line {
 			final NavigableSet<Text> texts = new TreeSet<>();
 			int maxWidth = 2;
-            boolean isHiragana = true;
 			
 			void add(Text text) {
 				texts.add(text);
-				if (!text.text.isBlank()) {
+				if (!text.text.isBlank())
 					maxWidth = Math.max(maxWidth, text.width / text.text.length());
-                    isHiragana = isHiragana && isHiragana(text.text);
-				}
 			}
 			
 			String textString() {
@@ -92,11 +111,15 @@ public class TestStatistics {
 				return sb.toString();
 			}
 			
+			boolean isSmall() {
+			    return maxWidth <= Page.this.maxWidth * 0.6;
+			}
+			
 			@Override
 			public String toString() {
-				int pageMaxWidth = Page.this.maxWidth;
-				String size = maxWidth > pageMaxWidth * 0.6 ? "大" : isHiragana ? "振" : "小";
+				String size = isSmall() ? "小" : "大";
 				return "%02d(%s)%s".formatted(maxWidth, size, textString());
+//				return "%02d(%s)%s".formatted(maxWidth, size, texts);
 			}
 		}
 
@@ -127,20 +150,67 @@ public class TestStatistics {
 				return null;
 			}
         }
+        
+        static boolean ignore(Line text) {
+            return text.textString().matches(" *- *\\d+ *- *");
+        }
+
+        static boolean ignore(Text text) {
+            return text.text.matches("\\p{IsHiragana}+");
+        }
 
         Page(PdfReaderContentParser parser, int pageNo, boolean horizontal) throws IOException {
         	this.pageNo = pageNo;
         	this.horizontal = horizontal;
+        	// PDFパーサを使ってテキストを取り出す。（コールバック）
         	parser.processContent(pageNo, new Listener());
         	this.maxWidth = lines.values().stream()
         		.mapToInt(line -> line.maxWidth)
         		.max().getAsInt();
+        	// 小文字の行を大文字の行にマージする。
+        	List<Entry<Integer, Line>> smalls = new ArrayList<>();     // すべての小文字行
+        	List<Entry<Integer, Line>> smallTemp = new ArrayList<>();  // 未処理の小文字行
+        	Entry<Integer, Line> big = null;                           // 大文字行
+        	for (Entry<Integer, Line> line : lines.entrySet()) {
+        	    if (line.getValue().isSmall()) {
+        	        smalls.add(line);
+        	        smallTemp.add(line);
+        	    } else {  // 大文字行の場合、未処理の小文字行をマージする。
+                    for (Entry<Integer, Line> s : smallTemp) {
+                        if (ignore(s.getValue())) // ページ番号の場合追加しない。
+                            continue;
+                        int sp = s.getKey();
+                        // 最も近い大文字行を特定する。
+                        Line nearBig = big == null ? line.getValue()
+                            : Math.abs(big.getKey() - sp) < Math.abs(line.getKey() - sp) ? big.getValue()
+                            : line.getValue();
+                        for (Text t : s.getValue().texts)
+                            if (!ignore(t))    // ルビの場合は追加しない。
+//                            if (!t.text.matches("\\p{IsHiragana}+"))    // ルビの場合は追加しない。
+                                nearBig.add(new Text(t, -t.y));
+                    }
+                    smallTemp.clear();
+        	        big = line;
+        	    }
+        	}
+        	if (big != null)
+                for (Entry<Integer, Line> s : smallTemp) {
+                    if (ignore(s.getValue())) // ページ番号の場合追加しない。
+                        continue;
+                    for (Text t : s.getValue().texts)
+                        if (!ignore(t))    // ルビの場合は追加しない。
+                            big.getValue().add(new Text(t, -t.y));
+                }
+        	for (Entry<Integer, Line> line : smalls)
+        	    lines.remove(line.getKey());
         }
         
         @Override
         public String toString() {
         	StringBuilder sb = new StringBuilder();
-            sb.append("page max width=" +maxWidth).append(System.lineSeparator());
+            sb.append("page max width=" + maxWidth)
+                .append(" page=" + pageNo)
+                .append(System.lineSeparator());
         	for (Entry<Integer, Line> e : lines.entrySet())
 				sb.append("%03d@%03d:%s%n".formatted(pageNo, e.getKey(), e.getValue()));
         	return sb.toString();
