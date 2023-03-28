@@ -13,6 +13,7 @@ public class TestITextPdf {
 	@Test
 	public void testTuti() throws IOException {
 		ITextPdf pdf = new ITextPdf("data/tuti.pdf", true);
+		pdf.parse();
 		try (Writer writer = new FileWriter("data/tuti-itextpdf.txt")) {
 			writer.write(pdf.text());
 		}
@@ -21,6 +22,7 @@ public class TestITextPdf {
 	@Test
 	public void testKokuji() throws IOException {
 		ITextPdf pdf = new ITextPdf("data/kokuji.pdf", false);
+		pdf.parse();
 		try (Writer writer = new FileWriter("data/kokuji-itextpdf.txt")) {
 			writer.write(pdf.text());
 		}

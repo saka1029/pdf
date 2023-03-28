@@ -17,47 +17,60 @@ import com.itextpdf.text.pdf.parser.PdfReaderContentParser;
 import com.itextpdf.text.pdf.parser.TextExtractionStrategy;
 import com.itextpdf.text.pdf.parser.TextRenderInfo;
 
+/**
+ * PDFファイルからテキストを抽出します。
+ * <br>
+ * ＜使用例＞
+ * <pre><code>
+ * // インスタンスを作成します。
+ * // 縦書きの時は第2引数をfalseにします。
+ * ITextPdf pdf = new ITextPdf("tuti.pdf", true);
+ * // ここで必要に応じてフィールドを変更します。
+ * pdf.newline = "\r\n";
+ * pdf.pagePattern = " *\\(\\d+\\) *";
+ * // ファイルを読み込みます。
+ * pdf.parse();
+ * // テキストを取り出します。
+ * String text = pdf.text();
+ * </code></pre>
+ */
 public class ITextPdf {
 	// A4のポイントサイズ
 	// 横約8.27 × 縦約11.69 インチ
 	// 595.44 x 841.68 ポイント
 	static final int PAGE_WIDTH = 596, PAGE_HEIGHT = 842;
 	static final String DEFAULT_PAGE_PATTERN = " *- *\\d+ *- *";
-	static final String NEWLINE = "\n";
+	static final String DEFAULT_NEWLINE = "\n";
 
-	final String filename;
-	final boolean horizontal;
-	final int numberOfPages;
+	public final String filename;
+	public final boolean horizontal;
+	public String pagePattern = DEFAULT_PAGE_PATTERN;
+	public String newline = DEFAULT_NEWLINE;
+	public int numberOfPages;
 	final List<Page> pages = new ArrayList<>();
-	final String pagePattern;
 
-	public ITextPdf(String filename, boolean horizontal, String pagePattern) throws IOException {
+	public ITextPdf(String filename, boolean horizontal) throws IOException {
 		this.filename = filename;
 		this.horizontal = horizontal;
-		this.pagePattern = pagePattern;
+	}
+	
+	public void parse() throws IOException {
 		PdfReader reader = new PdfReader(filename);
 		try (Closeable c = () -> reader.close()) {
 			this.numberOfPages = reader.getNumberOfPages();
-			parse(reader);
+			PdfReaderContentParser parser = new PdfReaderContentParser(reader);
+			for (int i = 1; i <= numberOfPages; ++i)
+				pages.add(new Page(parser, i));
 		}
 	}
-	public ITextPdf(String filename, boolean horizontal) throws IOException {
-		this(filename, horizontal, DEFAULT_PAGE_PATTERN);
-	}
 
-	void parse(PdfReader reader) throws IOException {
-		PdfReaderContentParser parser = new PdfReaderContentParser(reader);
-		for (int i = 1; i <= numberOfPages; ++i)
-			pages.add(new Page(parser, i));
-	}
-	
 	public String text() {
 		StringBuilder sb = new StringBuilder();
 		for (int i = 1; i <= numberOfPages; ++i) {
 			Page page = pages.get(i - 1);
-			sb.append("# %s page: %d%s".formatted(filename, i, NEWLINE));
+			sb.append("# %s page: %d%s".formatted(filename, i, newline));
 			for (Page.Line line : page.lines.values())
-				sb.append(line.text()).append(NEWLINE);
+				sb.append(line.text()).append(newline);
 		}
 		return sb.toString();
 	}
@@ -75,8 +88,10 @@ public class ITextPdf {
 			mergeLines();
 		}
         
+		/**
+		 * 小文字の行を大文字の行にマージする。
+		 */
 		void mergeLines() {
-        	// 小文字の行を大文字の行にマージする。
         	List<Entry<Integer, Line>> smalls = new ArrayList<>();     // すべての小文字行
         	List<Entry<Integer, Line>> smallTemp = new ArrayList<>();  // 未処理の小文字行
         	Entry<Integer, Line> big = null;                           // 大文字行
