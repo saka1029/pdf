@@ -1,14 +1,16 @@
 package saka1029.pdf;
 
 import java.io.Closeable;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.Map.Entry;
 
 import com.itextpdf.awt.geom.Rectangle2D;
 import com.itextpdf.text.pdf.PdfReader;
@@ -42,7 +44,10 @@ public class ITextPdf {
 	// 横約8.27 × 縦約11.69 インチ
 	// 595.44 x 841.68 ポイント
 	static final int PAGE_WIDTH = 596, PAGE_HEIGHT = 842;
-	static final String DEFAULT_PAGE_PATTERN = " *- *\\d+ *- *";
+	/**
+	 * 医科告示のページ番号は「初・再診  - 1 -」
+	 */
+	static final String DEFAULT_PAGE_PATTERN = "\\s*\\S*\\s*-\\s*\\d+\\s*-\\s*";
 	static final String DEFAULT_NEWLINE = "\n";
 
 	public final String filename;
@@ -50,6 +55,7 @@ public class ITextPdf {
 	public String pagePattern = DEFAULT_PAGE_PATTERN;
 	public String newline = DEFAULT_NEWLINE;
 	public int numberOfPages;
+	public int minX = Integer.MAX_VALUE;
 	final List<Page> pages = new ArrayList<>();
 
 	public ITextPdf(String filename, boolean horizontal) throws IOException {
@@ -77,6 +83,16 @@ public class ITextPdf {
 		}
 		return sb.toString();
 	}
+	
+	public static void toText(String[] inFiles, String outFile, boolean horizontal) throws IOException {
+		try (Writer out = new FileWriter(outFile)) {
+			for (String inFile : inFiles) {
+				ITextPdf pdf = new ITextPdf(inFile, horizontal);
+				pdf.parse();
+				out.write(pdf.text());
+			}
+		}
+	}
 
 	class Page {
 		final int pageNo;
@@ -87,7 +103,7 @@ public class ITextPdf {
 			this.pageNo = pageNo;
 			// PDFパーサーを使ってテキストを取り出す。（コールバック）
 			parser.processContent(pageNo, new PageListener());
-			this.maxWidth = lines.values().stream().mapToInt(line -> line.maxWidth).max().getAsInt();
+			this.maxWidth = lines.values().stream().mapToInt(line -> line.maxWidth).max().orElse(0);
 			// 小文字行を大文字行にマージします。
 			mergeLines();
 		}
@@ -148,6 +164,7 @@ public class ITextPdf {
 					return;
 				Text t = Page.this.new Text(renderInfo);
 				lines.computeIfAbsent(t.y, k -> new Line()).add(t);
+				minX = Math.min(minX, t.x);
 			}
 
 			@Override
@@ -191,7 +208,7 @@ public class ITextPdf {
 			 */
 			String text() {
 				float halfWidth = Page.this.maxWidth / 2.0F;
-				int position = 0;
+				int position = minX;
 				StringBuilder sb = new StringBuilder();
 				for (Text text : texts) {
 				    int spaces = (int)((text.x - position) / halfWidth);
