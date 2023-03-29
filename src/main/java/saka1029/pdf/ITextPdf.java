@@ -19,6 +19,9 @@ import com.itextpdf.text.pdf.parser.TextRenderInfo;
 
 /**
  * PDFファイルからテキストを抽出します。
+ * 縦書きのPDFに対応しています。
+ * ルビは無条件に削除します。
+ * 内部座標値は整数のポイントで表現します。
  * <br>
  * ＜使用例＞
  * <pre><code>
@@ -85,9 +88,17 @@ public class ITextPdf {
 			// PDFパーサーを使ってテキストを取り出す。（コールバック）
 			parser.processContent(pageNo, new PageListener());
 			this.maxWidth = lines.values().stream().mapToInt(line -> line.maxWidth).max().getAsInt();
+			// 小文字行を大文字行にマージします。
 			mergeLines();
 		}
 		
+		/**
+		 * 小文字行群を最も近い大文字行にマージします。
+		 * 
+		 * @param big1 小文字行群の前にある大文字行です。null可
+		 * @param big2 小文字行群の後にある大文字行です。null可
+		 * @param smallTemp マージすべき小文字行のリストです。
+		 */
 		void mergeLines(Entry<Integer, Line> big1, Entry<Integer, Line> big2, List<Entry<Integer, Line>> smallTemp) {
 		    if (big1 == null && big2 == null)
 		        return;
