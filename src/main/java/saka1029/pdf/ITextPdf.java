@@ -5,12 +5,14 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.stream.IntStream;
 
 import com.itextpdf.awt.geom.Rectangle2D;
 import com.itextpdf.text.pdf.PdfReader;
@@ -45,10 +47,14 @@ public class ITextPdf {
 	// 595.44 x 841.68 ポイント
 	static final int PAGE_WIDTH = 596, PAGE_HEIGHT = 842;
 	/**
-	 * 医科告示のページ番号は「初・再診  - 1 -」
+	 * 医科通知のページ番号は
+	 * 平成30年度「初・再診  - 1 -」
+	 * 令和01年度「初・再診  - 1 -」
+	 * 令和02年度「- 1 -」
+	 * 令和04年度「- 1 -」
 	 */
 	static final String DEFAULT_PAGE_PATTERN = "\\s*\\S*\\s*-\\s*\\d+\\s*-\\s*";
-	static final String DEFAULT_NEWLINE = "\n";
+	static final String DEFAULT_NEWLINE = "\r\n";
 
 	public final String filename;
 	public final boolean horizontal;
@@ -97,12 +103,19 @@ public class ITextPdf {
 	class Page {
 		final int pageNo;
 		final NavigableMap<Integer, Line> lines = new TreeMap<>();
-		final int maxWidth;
+		int maxWidth = Integer.MAX_VALUE;
 
 		Page(PdfReaderContentParser parser, int pageNo) throws IOException {
 			this.pageNo = pageNo;
 			// PDFパーサーを使ってテキストを取り出す。（コールバック）
 			parser.processContent(pageNo, new PageListener());
+			for (Iterator<Entry<Integer, Line>> it = lines.entrySet().iterator(); it.hasNext();) {
+				Line line = it.next().getValue();
+				if (line.text().matches(pagePattern))
+					it.remove();
+				else
+					this.maxWidth = Math.max(this.maxWidth, line.maxWidth);
+			}
 			this.maxWidth = lines.values().stream().mapToInt(line -> line.maxWidth).max().orElse(0);
 			// 小文字行を大文字行にマージします。
 			mergeLines();
@@ -119,8 +132,8 @@ public class ITextPdf {
 		    if (big1 == null && big2 == null)
 		        return;
 		    for (Entry<Integer, Line> s : smallTemp) {
-		        if (s.getValue().text().matches(pagePattern)) // ページ番号の場合追加しない。
-		            continue;
+//		        if (s.getValue().text().matches(pagePattern)) // ページ番号の場合追加しない。
+//		            continue;
                 int sp = s.getKey();
                 // 最も近い大文字行を特定する。
                 Line nearBig = big1 == null ? big2.getValue()
@@ -212,8 +225,8 @@ public class ITextPdf {
 				StringBuilder sb = new StringBuilder();
 				for (Text text : texts) {
 				    int spaces = (int)((text.x - position) / halfWidth);
-				    if (spaces > 0)
-                        sb.append(" ".repeat(spaces));
+				    for (int i = 0; i < spaces; ++i)
+                        sb.append(" ");
 				    sb.append(text.text);
 				    position = text.x + text.width;
 				}

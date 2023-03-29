@@ -16,6 +16,11 @@ import com.google.gson.Gson;
 
 import saka1029.pdf.ITextPdf;
 
+/**
+ * 平成30年、令和1年、令和2年、令和4年の
+ * PDFBoxによるPDF抽出テキストと、
+ * iTextによる PDF抽出テキストを比較するためのテストケースです。
+ */
 public class TestTensuhyo {
 
 	static final String TENSUHYO_DIR = "../tensuhyo/";
