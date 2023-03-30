@@ -55,11 +55,13 @@ public class ITextPdf {
 	 */
 	static final String DEFAULT_PAGE_PATTERN = "\\s*\\S*\\s*-\\s*\\d+\\s*-\\s*";
 	static final String DEFAULT_NEWLINE = "\r\n";
+	static final float DEFAULT_LINE_HEIGHT_RATE = 1.0F;
 
 	public final String filename;
 	public final boolean horizontal;
 	public String pagePattern = DEFAULT_PAGE_PATTERN;
 	public String newline = DEFAULT_NEWLINE;
+	public float lineHeightRate = DEFAULT_LINE_HEIGHT_RATE;
 	public int numberOfPages;
 	public int minX = Integer.MAX_VALUE;
 	final List<Page> pages = new ArrayList<>();
@@ -121,6 +123,28 @@ public class ITextPdf {
 			mergeLines();
 		}
 		
+		void mergeLines() {
+			float height = maxWidth * lineHeightRate;
+			Iterator<Entry<Integer, Line>> iterator = lines.entrySet().iterator();
+			if (!iterator.hasNext())
+				return;
+			Entry<Integer, Line> first = iterator.next();
+			while (iterator.hasNext()) {
+				Line firstLine = first.getValue();
+				float limit = first.getKey() + height;
+				Entry<Integer, Line> next = null;
+				while (iterator.hasNext() && (next = iterator.next()).getKey() <= limit) {
+					// next行をfirst行にマージします。
+					Line nextLine = next.getValue();
+					for (Text text : nextLine.texts)
+						if (!(nextLine.isSmall() && text.isHiragana()))    // ルビの場合は追加しません。
+							firstLine.add(new Text(text, -text.y));
+					iterator.remove();
+				}
+				first = next;
+			}
+		}
+
 		/**
 		 * 小文字行群を最も近い大文字行にマージします。
 		 * 
@@ -149,25 +173,25 @@ public class ITextPdf {
 		/**
 		 * 小文字の行を大文字の行にマージする。
 		 */
-		void mergeLines() {
-        	List<Entry<Integer, Line>> smalls = new ArrayList<>();     // すべての小文字行
-        	List<Entry<Integer, Line>> smallTemp = new ArrayList<>();  // 未処理の小文字行
-        	Entry<Integer, Line> big = null;                           // 大文字行
-        	for (Entry<Integer, Line> line : lines.entrySet()) {
-        	    if (line.getValue().isSmall()) {
-        	        smalls.add(line);
-        	        smallTemp.add(line);
-        	    } else {  // 大文字行の場合、未処理の小文字行をマージする。
-        	        mergeLines(big, line, smallTemp);
-                    smallTemp.clear();
-        	        big = line;
-        	    }
-        	}
-        	mergeLines(big, null, smallTemp);
-        	// マージしたすべての小文字行を削除する。
-        	for (Entry<Integer, Line> line : smalls)
-        	    lines.remove(line.getKey());
-		}
+//		void mergeLines() {
+//        	List<Entry<Integer, Line>> smalls = new ArrayList<>();     // すべての小文字行
+//        	List<Entry<Integer, Line>> smallTemp = new ArrayList<>();  // 未処理の小文字行
+//        	Entry<Integer, Line> big = null;                           // 大文字行
+//        	for (Entry<Integer, Line> line : lines.entrySet()) {
+//        	    if (line.getValue().isSmall()) {
+//        	        smalls.add(line);
+//        	        smallTemp.add(line);
+//        	    } else {  // 大文字行の場合、未処理の小文字行をマージする。
+//        	        mergeLines(big, line, smallTemp);
+//                    smallTemp.clear();
+//        	        big = line;
+//        	    }
+//        	}
+//        	mergeLines(big, null, smallTemp);
+//        	// マージしたすべての小文字行を削除する。
+//        	for (Entry<Integer, Line> line : smalls)
+//        	    lines.remove(line.getKey());
+//		}
 
 		class PageListener implements TextExtractionStrategy {
 
