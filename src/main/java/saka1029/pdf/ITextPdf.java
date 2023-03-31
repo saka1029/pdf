@@ -256,6 +256,11 @@ public class ITextPdf {
 				}
 				return sb.toString();
 			}
+
+			@Override
+			public String toString() {
+				return texts.toString();
+			}
 		}
 
 		class Text implements Comparable<Text> {
