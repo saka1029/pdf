@@ -12,7 +12,6 @@ import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.stream.IntStream;
 
 import com.itextpdf.awt.geom.Rectangle2D;
 import com.itextpdf.text.pdf.PdfReader;
@@ -55,13 +54,13 @@ public class ITextPdf {
 	 */
 	static final String DEFAULT_PAGE_PATTERN = "\\s*\\S*\\s*-\\s*\\d+\\s*-\\s*";
 	static final String DEFAULT_NEWLINE = "\r\n";
-	static final float DEFAULT_LINE_HEIGHT_RATE = 1.29F;
+//	static final float DEFAULT_LINE_HEIGHT_RATE = 1.29F;
 
 	public final String filename;
 	public final boolean horizontal;
 	public String pagePattern = DEFAULT_PAGE_PATTERN;
 	public String newline = DEFAULT_NEWLINE;
-	public float lineHeightRate = DEFAULT_LINE_HEIGHT_RATE;
+//	public float lineHeightRate = DEFAULT_LINE_HEIGHT_RATE;
 	public int numberOfPages;
 	public int minX = Integer.MAX_VALUE;
 	final List<Page> pages = new ArrayList<>();
@@ -123,27 +122,27 @@ public class ITextPdf {
 			mergeLines();
 		}
 		
-		void mergeLines() {
-			float height = maxWidth * lineHeightRate;
-			Iterator<Entry<Integer, Line>> iterator = lines.entrySet().iterator();
-			if (!iterator.hasNext())
-				return;
-			Entry<Integer, Line> first = iterator.next();
-			while (iterator.hasNext()) {
-				Line firstLine = first.getValue();
-				float limit = first.getKey() + height;
-				Entry<Integer, Line> next = null;
-				while (iterator.hasNext() && (next = iterator.next()).getKey() <= limit) {
-					// next行をfirst行にマージします。
-					Line nextLine = next.getValue();
-					for (Text text : nextLine.texts)
-						if (!(nextLine.isSmall() && text.isHiragana()))    // ルビの場合は追加しません。
-							firstLine.add(new Text(text, -text.y));
-					iterator.remove();
-				}
-				first = next;
-			}
-		}
+//		void mergeLines() {
+//			float height = maxWidth * lineHeightRate;
+//			Iterator<Entry<Integer, Line>> iterator = lines.entrySet().iterator();
+//			if (!iterator.hasNext())
+//				return;
+//			Entry<Integer, Line> first = iterator.next();
+//			while (iterator.hasNext()) {
+//				Line firstLine = first.getValue();
+//				float limit = first.getKey() + height;
+//				Entry<Integer, Line> next = null;
+//				while (iterator.hasNext() && (next = iterator.next()).getKey() <= limit) {
+//					// next行をfirst行にマージします。
+//					Line nextLine = next.getValue();
+//					for (Text text : nextLine.texts)
+//						if (!(nextLine.isSmall() && text.isHiragana()))    // ルビの場合は追加しません。
+//							firstLine.add(new Text(text, -text.y));
+//					iterator.remove();
+//				}
+//				first = next;
+//			}
+//		}
 
 		/**
 		 * 小文字行群を最も近い大文字行にマージします。
@@ -166,32 +165,32 @@ public class ITextPdf {
                     : big2.getValue();
                 for (Text t : s.getValue().texts)
                     if (!t.isHiragana())    // ルビの場合は追加しない。
-                        nearBig.add(new Text(t, -t.y));
+                        nearBig.add(t);
 		    }
 		}
         
 		/**
 		 * 小文字の行を大文字の行にマージする。
 		 */
-//		void mergeLines() {
-//        	List<Entry<Integer, Line>> smalls = new ArrayList<>();     // すべての小文字行
-//        	List<Entry<Integer, Line>> smallTemp = new ArrayList<>();  // 未処理の小文字行
-//        	Entry<Integer, Line> big = null;                           // 大文字行
-//        	for (Entry<Integer, Line> line : lines.entrySet()) {
-//        	    if (line.getValue().isSmall()) {
-//        	        smalls.add(line);
-//        	        smallTemp.add(line);
-//        	    } else {  // 大文字行の場合、未処理の小文字行をマージする。
-//        	        mergeLines(big, line, smallTemp);
-//                    smallTemp.clear();
-//        	        big = line;
-//        	    }
-//        	}
-//        	mergeLines(big, null, smallTemp);
-//        	// マージしたすべての小文字行を削除する。
-//        	for (Entry<Integer, Line> line : smalls)
-//        	    lines.remove(line.getKey());
-//		}
+		void mergeLines() {
+        	List<Entry<Integer, Line>> smalls = new ArrayList<>();     // すべての小文字行
+        	List<Entry<Integer, Line>> smallTemp = new ArrayList<>();  // 未処理の小文字行
+        	Entry<Integer, Line> big = null;                           // 大文字行
+        	for (Entry<Integer, Line> line : lines.entrySet()) {
+        	    if (line.getValue().isSmall()) {
+        	        smalls.add(line);
+        	        smallTemp.add(line);
+        	    } else {  // 大文字行の場合、未処理の小文字行をマージする。
+        	        mergeLines(big, line, smallTemp);
+                    smallTemp.clear();
+        	        big = line;
+        	    }
+        	}
+        	mergeLines(big, null, smallTemp);
+        	// マージしたすべての小文字行を削除する。
+        	for (Entry<Integer, Line> line : smalls)
+        	    lines.remove(line.getKey());
+		}
 
 		class PageListener implements TextExtractionStrategy {
 
@@ -264,24 +263,23 @@ public class ITextPdf {
 		}
 
 		class Text implements Comparable<Text> {
-			final int x, y, width, extra;
+			final int x, y, width;
 			final String text;
 
 			static int round(float f) {
 				return Math.round(f);
 			}
 
-			Text(int x, int y, int width, String text, int extra) {
+			Text(int x, int y, int width, String text) {
 				this.x = x;
 				this.y = y;
 				this.width = width;
 				this.text = text;
-				this.extra = extra;
 			}
 
-			Text(Text text, int extra) {
-				this(text.x, text.y, text.width, text.text, extra);
-			}
+//			Text(Text text) {
+//				this(text.x, text.y, text.width, text.text);
+//			}
 
 			static Rectangle2D.Float box(TextRenderInfo info) {
 				return info.getAscentLine().getBoundingRectange();
@@ -290,7 +288,7 @@ public class ITextPdf {
 			Text(TextRenderInfo info) {
 				this(round(horizontal ? box(info).x : PAGE_HEIGHT - box(info).y),
 						round(horizontal ? PAGE_HEIGHT - box(info).y : PAGE_WIDTH - box(info).x),
-						round(box(info).width), info.getText(), 0);
+						round(box(info).width), info.getText());
 			}
 
 			boolean isHiragana() {
@@ -301,7 +299,7 @@ public class ITextPdf {
 			public int compareTo(Text o) {
 				int r = Integer.compare(x, o.x);
 				if (r == 0)
-					r = Integer.compare(extra, o.extra);
+					r = -Integer.compare(y, o.y);
 				return r;
 			}
 

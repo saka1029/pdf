@@ -3755,7 +3755,7 @@
                       期リハビリテーション病棟入院料の算定日数上限が 90 日）で実際には 72 日で退
                       棟、残り 20 人が脳卒中（回復期リハビリテーション病棟入院料の算定日数上限が
                       150日）で実際には135日で退棟したとすると、(72/90)×30 + (135/150)×20 =
-                      4従2って、この例ではリハビリテーション実績指数は①／②＝33.3となる。
+                      従42って、この例ではリハビリテーション実績指数は①／②＝33.3となる。
                 ウ  在棟中に一度も回復期リハビリテーション病棟入院料を算定しなかった患者及び在
                   棟中に死亡した患者はリハビリテーション実績指数の算出対象から除外する。また、
                   入棟日において次に該当する患者については、当該月の入棟患者数（入棟時に回復期
@@ -10024,7 +10024,7 @@
               ＳＩＡ : Split immuno assay
               ＰＣＲ : Polymerase chain reaction
               ＰＣＲ－ｒＳＳＯ : Polymerase chain reaction – reverse sequence specific oligonucl
-              oＥtiＶde－ＦＩＡ : Evanescent wave fluoro immuno assay エバネセント波蛍光免疫測定法
+              ＥotＶid－e ＦＩＡ : Evanescent wave fluoro immuno assay エバネセント波蛍光免疫測定法
               ＦＩＡ : Fluoro immuno assay 蛍光免疫測定法
               ＬＢＡ : Liquid-phase binding assay  液相結合法
               ＦＩＳＨ : Fluorescence in situ hybridization
