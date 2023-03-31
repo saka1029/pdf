@@ -55,7 +55,7 @@ public class ITextPdf {
 	 */
 	static final String DEFAULT_PAGE_PATTERN = "\\s*\\S*\\s*-\\s*\\d+\\s*-\\s*";
 	static final String DEFAULT_NEWLINE = "\r\n";
-	static final float DEFAULT_LINE_HEIGHT_RATE = 1.0F;
+	static final float DEFAULT_LINE_HEIGHT_RATE = 1.29F;
 
 	public final String filename;
 	public final boolean horizontal;
