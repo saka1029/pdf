@@ -6,8 +6,10 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 
 import org.junit.Test;
 
@@ -47,19 +49,21 @@ public class TestTensuhyo {
 		}
 	}
 
+	static CopyOption OW = StandardCopyOption.REPLACE_EXISTING;
+
 	static void copyOld() throws IOException {
 		for (String paramFile : PARAMS) {
 			Param param = param(TENSUHYO_DIR + paramFile);
 			Path src = Path.of(TENSUHYO_DATA_DIR, param.年度);
 			Path dst = Path.of("data", "comp");
-			Files.copy(src.resolve("i/txt/kokuji.txt"), dst.resolve(param.年度 + "-i-kokuji-old.txt"));
-			Files.copy(src.resolve("i/txt/tuti.txt"), dst.resolve(param.年度 + "-i-tuti-old.txt"));
-			Files.copy(src.resolve("s/txt/kokuji.txt"), dst.resolve(param.年度 + "-s-kokuji-old.txt"));
-			Files.copy(src.resolve("s/txt/tuti.txt"), dst.resolve(param.年度 + "-s-tuti-old.txt"));
-			Files.copy(src.resolve("t/txt/kokuji.txt"), dst.resolve(param.年度 + "-t-kokuji-old.txt"));
-			Files.copy(src.resolve("t/txt/tuti.txt"), dst.resolve(param.年度 + "-t-tuti-old.txt"));
-			Files.copy(src.resolve("k/txt/kokuji.txt"), dst.resolve(param.年度 + "-k-kokuji-old.txt"));
-			Files.copy(src.resolve("k/txt/tuti.txt"), dst.resolve(param.年度 + "-k-tuti-old.txt"));
+			Files.copy(src.resolve("i/txt/kokuji.txt"), dst.resolve(param.年度 + "-i-kokuji-old.txt"), OW);
+			Files.copy(src.resolve("i/txt/tuti.txt"), dst.resolve(param.年度 + "-i-tuti-old.txt"), OW);
+			Files.copy(src.resolve("s/txt/kokuji.txt"), dst.resolve(param.年度 + "-s-kokuji-old.txt"), OW);
+			Files.copy(src.resolve("s/txt/tuti.txt"), dst.resolve(param.年度 + "-s-tuti-old.txt"), OW);
+			Files.copy(src.resolve("t/txt/kokuji.txt"), dst.resolve(param.年度 + "-t-kokuji-old.txt"), OW);
+			Files.copy(src.resolve("t/txt/tuti.txt"), dst.resolve(param.年度 + "-t-tuti-old.txt"), OW);
+			Files.copy(src.resolve("k/txt/kokuji.txt"), dst.resolve(param.年度 + "-k-kokuji-old.txt"), OW);
+			Files.copy(src.resolve("k/txt/tuti.txt"), dst.resolve(param.年度 + "-k-tuti-old.txt"), OW);
 		}
 	}
 	

@@ -53,7 +53,7 @@ public class ITextPdf {
 	 * 令和04年度「- 1 -」
 	 */
 	static final String DEFAULT_PAGE_PATTERN = "\\s*\\S*\\s*-\\s*\\d+\\s*-\\s*";
-	static final String DEFAULT_NEWLINE = "\r\n";
+	static final String DEFAULT_NEWLINE = "\n";
 	static final String SPACES = " ".repeat(300);
 
 	public final String filename;
