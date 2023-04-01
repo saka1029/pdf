@@ -54,13 +54,12 @@ public class ITextPdf {
 	 */
 	static final String DEFAULT_PAGE_PATTERN = "\\s*\\S*\\s*-\\s*\\d+\\s*-\\s*";
 	static final String DEFAULT_NEWLINE = "\r\n";
-//	static final float DEFAULT_LINE_HEIGHT_RATE = 1.29F;
+	static final String SPACES = " ".repeat(300);
 
 	public final String filename;
 	public final boolean horizontal;
 	public String pagePattern = DEFAULT_PAGE_PATTERN;
 	public String newline = DEFAULT_NEWLINE;
-//	public float lineHeightRate = DEFAULT_LINE_HEIGHT_RATE;
 	public int numberOfPages;
 	public int minX = Integer.MAX_VALUE;
 	final List<Page> pages = new ArrayList<>();
@@ -104,26 +103,29 @@ public class ITextPdf {
 	class Page {
 		final int pageNo;
 		final NavigableMap<Integer, Line> lines = new TreeMap<>();
-		int maxWidth = Integer.MAX_VALUE;
+		final int maxCharWidth;
 
 		Page(PdfReaderContentParser parser, int pageNo) throws IOException {
+			int maxCharWidth = 0;
 			this.pageNo = pageNo;
 			// PDFパーサーを使ってテキストを取り出す。（コールバック）
 			parser.processContent(pageNo, new PageListener());
 			for (Iterator<Entry<Integer, Line>> it = lines.entrySet().iterator(); it.hasNext();) {
 				Line line = it.next().getValue();
+				// ページパターンにマッチする行を削除する。
 				if (line.text().matches(pagePattern))
 					it.remove();
 				else
-					this.maxWidth = Math.max(this.maxWidth, line.maxWidth);
+					maxCharWidth = Math.max(maxCharWidth, line.maxCharWidth);
 			}
-			this.maxWidth = lines.values().stream().mapToInt(line -> line.maxWidth).max().orElse(0);
+			this.maxCharWidth = maxCharWidth;
 			// 小文字行を大文字行にマージします。
 			mergeLines();
 		}
 		
+		// Y座標がある閾値内にある場合に行をマージする方式（うまくいかない）
 //		void mergeLines() {
-//			float height = maxWidth * lineHeightRate;
+//			float height = maxCharWidth * lineHeightRate;
 //			Iterator<Entry<Integer, Line>> iterator = lines.entrySet().iterator();
 //			if (!iterator.hasNext())
 //				return;
@@ -155,8 +157,6 @@ public class ITextPdf {
 		    if (big1 == null && big2 == null)
 		        return;
 		    for (Entry<Integer, Line> s : smallTemp) {
-//		        if (s.getValue().text().matches(pagePattern)) // ページ番号の場合追加しない。
-//		            continue;
                 int sp = s.getKey();
                 // 最も近い大文字行を特定する。
                 Line nearBig = big1 == null ? big2.getValue()
@@ -223,7 +223,7 @@ public class ITextPdf {
 		}
 
 		class Line {
-			int maxWidth = 2;
+			int maxCharWidth = 2;
 			final NavigableSet<Text> texts = new TreeSet<>();
 
 			void add(Text text) {
@@ -231,25 +231,27 @@ public class ITextPdf {
 				if (text.text.isBlank())
 					return;
 				int width = text.width /text.text.length();
-				maxWidth = Math.max(maxWidth, width);
+				maxCharWidth = Math.max(maxCharWidth, width);
 			}
 			
 			boolean isSmall() {
-				return maxWidth <= Page.this.maxWidth * 0.6;
+				return maxCharWidth <= Page.this.maxCharWidth * 0.6;
 			}
 			
 			/**
 			 * テキストを連結して１行分の文字列を返します。
-			 * テキストの間隔により、適宜半角スペースをは挿入します。
+			 * テキストの間隔により、適宜半角スペースを挿入します。
+			 * Page.this.maxCharWidthとminXは処理途中で不適切な値となっている場合があるので、
+			 * 適宜補正します。
 			 */
 			String text() {
-				float halfWidth = Page.this.maxWidth / 2.0F;
-				int position = minX;
+				float halfWidth = Page.this.maxCharWidth == 0 ? 5 : Page.this.maxCharWidth / 2.0F;
+				int position = minX == Integer.MAX_VALUE ? 0 : minX;
 				StringBuilder sb = new StringBuilder();
 				for (Text text : texts) {
 				    int spaces = (int)((text.x - position) / halfWidth);
-				    for (int i = 0; i < spaces; ++i)
-                        sb.append(" ");
+				    spaces = Math.max(0, spaces);
+					sb.append(SPACES.substring(0, spaces));
 				    sb.append(text.text);
 				    position = text.x + text.width;
 				}
