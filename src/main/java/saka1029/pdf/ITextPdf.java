@@ -4,6 +4,7 @@ import java.io.Closeable;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -78,12 +79,16 @@ public class ITextPdf {
 				pages.add(new Page(parser, i));
 		}
 	}
+	
+	String filename(String filename) {
+		return Path.of(filename).getFileName().toString();
+	}
 
 	public String text() {
 		StringBuilder sb = new StringBuilder();
 		for (int i = 1; i <= numberOfPages; ++i) {
 			Page page = pages.get(i - 1);
-			sb.append("# %s page: %d%s".formatted(filename, i, newline));
+			sb.append("#file: %s page: %d%s".formatted(filename(filename), i, newline));
 			for (Page.Line line : page.lines.values())
 				sb.append(line.text()).append(newline);
 		}
