@@ -289,7 +289,7 @@ public class ITextPdf {
 //			}
 
 			static Rectangle2D.Float box(TextRenderInfo info) {
-				return info.getAscentLine().getBoundingRectange();
+				return info.getBaseline().getBoundingRectange();
 			}
 
 			Text(TextRenderInfo info) {
