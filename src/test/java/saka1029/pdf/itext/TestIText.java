@@ -53,11 +53,12 @@ public class TestIText {
         static Text newText(TextRenderInfo info, boolean horizontal) {
             Rectangle2D.Float baseBox = info.getBaseline().getBoundingRectange();
             Rectangle2D.Float ascentBox = info.getAscentLine().getBoundingRectange();
+            Rectangle2D.Float descentBox = info.getDescentLine().getBoundingRectange();
             return new Text(
                 round(horizontal ? baseBox.x : PAGE_HEIGHT - baseBox.y),
                 round(horizontal ? PAGE_HEIGHT - baseBox.y : PAGE_HEIGHT - baseBox.x),
                 round(baseBox.width),
-                round(ascentBox.y - baseBox.y),
+                round(ascentBox.y - descentBox.y),
                 info.getText());
         }
 
