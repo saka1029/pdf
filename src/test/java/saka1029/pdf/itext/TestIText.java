@@ -18,6 +18,7 @@ import com.itextpdf.awt.geom.Rectangle2D;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.parser.ImageRenderInfo;
 import com.itextpdf.text.pdf.parser.PdfReaderContentParser;
+import com.itextpdf.text.pdf.parser.RenderListener;
 import com.itextpdf.text.pdf.parser.TextExtractionStrategy;
 import com.itextpdf.text.pdf.parser.TextRenderInfo;
 
@@ -25,10 +26,18 @@ public class TestIText {
 
     static final PrintWriter OUT = new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8), true);
 
-    public record Text(float x, float y, float width, float height, String text) implements Comparable<Text> {
+    /**
+     * PDF内のテキスト要素を格納するクラスです。
+     * x, yはX座標値、Y座標値です。
+     * 座標は左上原点でX座標は右方向、Y座標は下方向です。
+     * w, hは幅(X方向の長さ)、高さ(Y方向の長さ)です。
+     * textはテキスト要素の文字列です。
+     * 単位はポイントです。1ポイントは1/72インチです。
+     */
+    public record Text(float x, float y, float w, float h, String text) implements Comparable<Text> {
         @Override
         public String toString() {
-            return "%.0fx%.0f:%.0fx%.0f:%s".formatted(x, y, width, height, text);
+            return "%.0fx%.0f:%.0fx%.0f:%s".formatted(x, y, w, h, text);
         }
 
         @Override
@@ -62,6 +71,19 @@ public class TestIText {
                 info.getText());
         }
 
+        interface SimpleListener extends RenderListener {
+            public void renderText(TextRenderInfo renderInfo);
+
+            default void renderImage(ImageRenderInfo renderInfo) {
+            }
+
+            default public void beginTextBlock() {
+            }
+
+            default public void endTextBlock() {
+            }
+        }
+
         public static List<NavigableMap<Float, NavigableSet<Text>>> read(String filename, boolean horizontal)
             throws IOException {
             List<NavigableMap<Float, NavigableSet<Text>>> result = new ArrayList<>();
@@ -72,29 +94,9 @@ public class TestIText {
                 for (int i = 1; i <= numberOfPages; ++i) {
                     NavigableMap<Float, NavigableSet<Text>> page = new TreeMap<>();
                     result.add(page);
-                    parser.processContent(i, new TextExtractionStrategy() {
-                        @Override
-                        public void renderText(TextRenderInfo renderInfo) {
-                            Text text = newText(renderInfo, horizontal);
-                            page.computeIfAbsent(text.y, k -> new TreeSet<>()).add(text);
-                        }
-
-                        @Override
-                        public void renderImage(ImageRenderInfo renderInfo) {
-                        }
-
-                        @Override
-                        public void endTextBlock() {
-                        }
-
-                        @Override
-                        public void beginTextBlock() {
-                        }
-
-                        @Override
-                        public String getResultantText() {
-                            return null;
-                        }
+                    parser.processContent(i, (SimpleListener) renderInfo -> {
+                        Text text = newText(renderInfo, horizontal);
+                        page.computeIfAbsent(text.y, k -> new TreeSet<>()).add(text);
                     });
                 }
             }
