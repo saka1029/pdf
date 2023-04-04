@@ -115,7 +115,7 @@ public class TestIText {
 
     @Test
     public void testRead() throws IOException {
-//        testRead("data/tuti.pdf");
-        testRead("data/kokuji.pdf");
+        testRead("data/tuti.pdf");
+//        testRead("data/kokuji.pdf");
     }
 }
