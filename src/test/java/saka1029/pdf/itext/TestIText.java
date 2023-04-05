@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.junit.Test;
 
@@ -31,9 +33,6 @@ public class TestIText {
                 for (Text text : line)
                     OUT.println(text);
         }
-        List<Map<Float, Long>> 文字サイズ分布 = Converter.文字サイズ分布(座標変換済);
-        for (int i = 0; i < numberOfPages; ++i)
-            OUT.printf("%d page %s%n", i + 1, 文字サイズ分布.get(i));
     }
 
     @Test

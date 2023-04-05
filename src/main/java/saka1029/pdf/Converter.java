@@ -4,11 +4,13 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Converter {
 
@@ -77,22 +79,20 @@ public class Converter {
         return result;
     }
     
+    public static float 最頻文字サイズ(Stream<Text> in) {
+    	return in.collect(Collectors.groupingBy(text -> text.h, Collectors.counting()))
+			.entrySet().stream()
+    		.max(Entry.comparingByValue())
+    		.orElseGet(() -> Map.entry(10F, 0L))
+    		.getKey();
+    }
+
     public static List<NavigableMap<Float, NavigableSet<Text>>> 行マージ(List<NavigableMap<Float, NavigableSet<Text>>> pages) {
         List<NavigableMap<Float, NavigableSet<Text>>> result = new ArrayList<>();
         for (NavigableMap<Float, NavigableSet<Text>> page : pages) {
-        	int 最頻文字サイズ = page.values().stream()
-        		.flatMap(texts -> texts.stream())
-				.collect(Collectors.groupingBy(text -> text.h, TreeMap::new, Collectors.counting()))
-				.firstEntry().
-
+        	NavigableMap<Float, NavigableSet<Text>> newPage = new TreeMap<>();
+        	float 標準文字サイズ = 最頻文字サイズ(page.values().stream().flatMap(line -> line.stream()));
         }
         return result;
-    }
-    
-    public static List<Map<Float, Long>> 文字サイズ分布(List<List<Text>> texts) {
-        return texts.stream()
-            .map(page -> page.stream()
-                .collect(Collectors.groupingBy(text -> text.h, Collectors.counting())))
-            .toList();
     }
 }
