@@ -61,17 +61,30 @@ public class Converter {
 
     /**
      * 頁ごとのTextを列(Y座標)および行(X座標)で単純に並び替えます。
-     * @param texts Text群を指定します。
+     * @param pages Text群を指定します。
      * @return 並び替えたText群を返します。
      */
-    public static List<NavigableMap<Float, NavigableSet<Text>>> 整列(List<List<Text>> texts) {
+    public static List<NavigableMap<Float, NavigableSet<Text>>> 整列(List<List<Text>> pages) {
         List<NavigableMap<Float, NavigableSet<Text>>> result = new ArrayList<>();
-        for (int i = 0, size = texts.size(); i < size; ++i) {
-            List<Text> page = texts.get(i);
+        int numberOfPages = pages.size();
+        for (int i = 0; i < numberOfPages; ++i) {
+            List<Text> page = pages.get(i);
             NavigableMap<Float, NavigableSet<Text>> newPage = new TreeMap<>();
             result.add(newPage);
             for (Text text : page)
                 newPage.computeIfAbsent(text.y, k -> new TreeSet<>(LEFT2RIGHT)).add(text);
+        }
+        return result;
+    }
+    
+    public static List<NavigableMap<Float, NavigableSet<Text>>> 行マージ(List<NavigableMap<Float, NavigableSet<Text>>> pages) {
+        List<NavigableMap<Float, NavigableSet<Text>>> result = new ArrayList<>();
+        for (NavigableMap<Float, NavigableSet<Text>> page : pages) {
+        	int 最頻文字サイズ = page.values().stream()
+        		.flatMap(texts -> texts.stream())
+				.collect(Collectors.groupingBy(text -> text.h, TreeMap::new, Collectors.counting()))
+				.firstEntry().
+
         }
         return result;
     }
