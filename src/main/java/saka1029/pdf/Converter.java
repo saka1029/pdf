@@ -61,6 +61,28 @@ public class Converter {
                 .toList())
             .toList();
     }
+    
+    /**
+     * 1行分のTextのストリームを文字列に変換します。
+     * @param line 1行分のTextのストリームを指定します。
+     * @param leftMargin レフトマージンをポイントサイズで指定します。
+     * 					 このサイズ分の行頭のスペースを無視します。
+     * @param charWidth  半角スペースの幅をポイントサイズで指定します。
+     * @return 文字列に変換した結果を返します。
+     */
+    public static String 行文字列(Collection<Text> line, float leftMargin, float charWidth) {
+        StringBuilder sb = new StringBuilder();
+        float halfWidth = charWidth / 2;
+        float start = leftMargin;
+        for (Text text : line) {
+            int spaces = Math.round((text.x - start) / halfWidth);
+            for (int i = 0; i < spaces; ++i)
+                sb.append(" ");
+            sb.append(text.text);
+            start = text.x + text.w;
+        }
+        return sb.toString();
+    }
 
     /**
      * 頁ごとのTextを列(Y座標)および行(X座標)で単純に並び替えます。
@@ -80,20 +102,14 @@ public class Converter {
         return result;
     }
     
-    public static String 行文字列(Collection<Text> line, float leftMargin, float charWidth) {
-        StringBuilder sb = new StringBuilder();
-        float halfWidth = charWidth / 2;
-        float start = leftMargin;
-        for (Text text : line) {
-            int spaces = Math.round((text.x - start) / halfWidth);
-            for (int i = 0; i < spaces; ++i)
-                sb.append(" ");
-            sb.append(text.text);
-            start = text.x + text.w;
-        }
-        return sb.toString();
-    }
-    
+    /**
+     * Text群における最頻文字サイズを求めます。
+     * Textにおける文字の長さをテキストの高さで集約し、
+     * 最も出現回数の多いテキストの高さを返します。
+     * @param in Textのストリームを指定します。
+     * @return 最頻文字サイズをポイントサイズで返します。
+     *         ストリームがからの場合は10Fを返します。
+     */
     public static float 最頻文字サイズ(Stream<Text> in) {
     	return in
     	    .collect(Collectors.groupingBy(text -> text.h,
@@ -104,11 +120,15 @@ public class Converter {
     		.getKey();
     }
 
-    public static List<NavigableMap<Float, NavigableSet<Text>>> 行マージ(List<NavigableMap<Float, NavigableSet<Text>>> pages) {
-        List<NavigableMap<Float, NavigableSet<Text>>> result = new ArrayList<>();
-        for (NavigableMap<Float, NavigableSet<Text>> page : pages) {
-        	NavigableMap<Float, NavigableSet<Text>> newPage = new TreeMap<>();
-        	float 標準文字サイズ = 最頻文字サイズ(page.values().stream().flatMap(line -> line.stream()));
+    public static List<NavigableMap<Float, NavigableSet<Text>>> 行マージ(List<List<Text>> pages) {
+        List<NavigableMap<Float, NavigableSet<Text>>> result = 整列(pages);
+        for (NavigableMap<Float, NavigableSet<Text>> page : result) {
+        	float ページ内標準文字サイズ = 最頻文字サイズ(page.values().stream().flatMap(line -> line.stream()));
+        	for (Entry<Float, NavigableSet<Text>> line : page.entrySet()) {
+        		float 行内標準文字サイズ = 最頻文字サイズ(line.getValue().stream());
+
+        		
+        	}
         }
         return result;
     }
