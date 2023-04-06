@@ -1,6 +1,7 @@
 package saka1029.pdf;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -77,6 +78,20 @@ public class Converter {
                 newPage.computeIfAbsent(text.y, k -> new TreeSet<>(LEFT2RIGHT)).add(text);
         }
         return result;
+    }
+    
+    public static String 行文字列(Collection<Text> line, float leftMargin, float charWidth) {
+        StringBuilder sb = new StringBuilder();
+        float halfWidth = charWidth / 2;
+        float start = leftMargin;
+        for (Text text : line) {
+            int spaces = Math.round((text.x - start) / halfWidth);
+            for (int i = 0; i < spaces; ++i)
+                sb.append(" ");
+            sb.append(text.text);
+            start = text.x + text.w;
+        }
+        return sb.toString();
     }
     
     public static float 最頻文字サイズ(Stream<Text> in) {
