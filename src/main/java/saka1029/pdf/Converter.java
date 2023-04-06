@@ -95,10 +95,12 @@ public class Converter {
     }
     
     public static float 最頻文字サイズ(Stream<Text> in) {
-    	return in.collect(Collectors.groupingBy(text -> text.h, Collectors.counting()))
+    	return in
+    	    .collect(Collectors.groupingBy(text -> text.h,
+    	        Collectors.summingInt(text -> text.text.length()))) // 文字列の長さをテキストの高さで集計する。
 			.entrySet().stream()
     		.max(Entry.comparingByValue())
-    		.orElseGet(() -> Map.entry(10F, 0L))
+    		.orElseGet(() -> Map.entry(10F, 0))
     		.getKey();
     }
 
