@@ -3,10 +3,16 @@ package saka1029.pdf;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.NavigableMap;
 import java.util.TreeMap;
+import java.util.Map.Entry;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.itextpdf.awt.geom.Rectangle2D;
 import com.itextpdf.text.pdf.PdfReader;
@@ -72,6 +78,57 @@ public class IText {
             r = Float.compare(b.y(), a.y());
         return r;
     };
+    
+    static final Entry<Float, Integer> 既定の文字サイズ = Map.entry(10F, 0);
+
+    /**
+     * Text群における最頻文字サイズを求めます。
+     * Textにおける文字の長さをテキストの高さで集約し、
+     * 最も出現回数の多いテキストの高さを返します。
+     * @param in Textのストリームを指定します。
+     * @return 最頻文字サイズをポイントサイズで返します。
+     *         ストリームがからの場合は10Fを返します。
+     */
+    public static float frequentCharHeight(Stream<Text> texts) {
+    	return texts
+    	    .collect(Collectors.groupingBy(text -> text.h(),
+    	        Collectors.summingInt(text -> text.text().length()))) // 文字列の長さをテキストの高さで集計する。
+			.entrySet().stream()
+    		.max(Entry.comparingByValue())
+    		.orElse(既定の文字サイズ)
+    		.getKey();
+    }
+
+    static void merge(NavigableMap<Float, List<Text>> aligned) {
+    	float standardCharHeight = frequentCharHeight(aligned.values().stream().flatMap(List::stream));
+    	for (Iterator<Entry<Float, List<Text>>> it = aligned.entrySet().iterator(); it.hasNext();) {
+    		
+    	}
+    	
+    }
+    
+    /**
+     * 1行分のTextのストリームを文字列に変換します。
+     * @param line 1行分のTextのストリームを指定します。
+     * @param leftMargin レフトマージンをポイントサイズで指定します。
+     * 					 このサイズ分の行頭のスペースを無視します。
+     * @param charWidth  半角スペースの幅をポイントサイズで指定します。
+     * @return 文字列に変換した結果を返します。
+     */
+    public static String toString(Collection<Text> line, float leftMargin, float charWidth) {
+        StringBuilder sb = new StringBuilder();
+        float halfWidth = charWidth / 2;
+        float start = leftMargin;
+        for (Text text : line) {
+            int spaces = Math.round((text.x() - start) / halfWidth);
+            for (int i = 0; i < spaces; ++i)
+                sb.append(" ");
+            sb.append(text.text());
+            start = text.x() + text.w();
+        }
+        return sb.toString();
+    }
+
 
     public static List<List<String>> 読み込み(String filename, boolean horizontal) throws IOException {
         List<List<String>> result = new ArrayList<>();
@@ -82,8 +139,9 @@ public class IText {
             for (int pageNo = 1; pageNo <= numberOfPages; ++pageNo) {
                 List<Text> page = new ArrayList<>();
                 parse(parser, horizontal, pageNo, page);
-                TreeMap<Float, List<Text>> aligned = page.stream()
+                NavigableMap<Float, List<Text>> aligned = page.stream()
                     .collect(Collectors.groupingBy(Text::y, TreeMap::new, Collectors.toList()));
+                merge(aligned);
             }
         }
         return result;
