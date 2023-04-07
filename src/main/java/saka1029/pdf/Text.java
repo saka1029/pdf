@@ -7,18 +7,7 @@ package saka1029.pdf;
  * hは幅(X方向の長さ)、高さ(Y方向の長さ)です。
  * textはテキスト要素の文字列です。 単位はポイントです。1ポイントは1/72インチです。
  */
-public class Text {
-    public final float x, y, w, h;
-    public final String text;
-
-    public Text(float x, float y, float w, float h, String text) {
-        this.x = x;
-        this.y = y;
-        this.w = w;
-        this.h = h;
-        this.text = text;
-    }
-
+public record Text(float x, float y, float w, float h, String text) {
     @Override
     public String toString() {
         return x + "x" + y + ":" + w + "x" + h + ":" + text;

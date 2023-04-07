@@ -94,13 +94,15 @@ public class Converter {
         return sb.toString();
     }
     
+    static final Entry<Float, Integer> 既定の文字サイズ = Map.entry(10F, 0);
+
     public static float 最頻文字サイズ(Stream<Text> in) {
     	return in
     	    .collect(Collectors.groupingBy(text -> text.h,
     	        Collectors.summingInt(text -> text.text.length()))) // 文字列の長さをテキストの高さで集計する。
 			.entrySet().stream()
     		.max(Entry.comparingByValue())
-    		.orElseGet(() -> Map.entry(10F, 0))
+    		.orElse(既定の文字サイズ)
     		.getKey();
     }
 
