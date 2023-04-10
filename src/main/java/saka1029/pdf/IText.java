@@ -138,7 +138,13 @@ public class IText {
                 List<Text> page = new ArrayList<>();
                 parse(parser, horizontal, pageNo, page);
                 Collections.sort(page, Comparator.comparing(Text::y).thenComparing(Text::x));
-                float leftMargin = (float)page.stream().mapToDouble(Text::x).min().orElse(0);
+                float leftMargin = page.stream()
+                    .collect(Collectors.groupingBy(Text::h,
+                        Collectors.summingInt(t -> t.text.length())))
+                    .entrySet().stream()
+                    .max(Entry.comparingByValue())
+                    .orElse(既定の文字サイズ)
+                    .getKey();
                 float freqHeight = frequentCharHeight(page.stream());
                 OUT.println("#file " + filename + " page=" + pageNo);
                 for (Text text : page)
