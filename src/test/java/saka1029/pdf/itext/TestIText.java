@@ -1,5 +1,6 @@
 package saka1029.pdf.itext;
 
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -12,27 +13,22 @@ import saka1029.pdf.IText;
 
 public class TestIText {
 
-    static final PrintWriter OUT = new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8), true);
+	static final PrintWriter OUT = new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8), true);
 
-    static void testRead(String filename, boolean horizontal) throws IOException {
-        List<List<String>> texts = IText.読み込み(filename, horizontal);
-        
-//        List<List<Text>> 読み込み済 = IText.読み込み(filename);
-//        List<List<Text>> 座標変換済 = Converter.座標変換(読み込み済, horizontal);
-//        List<NavigableMap<Float, NavigableSet<Text>>> 整列済 = Converter.整列(座標変換済);
-//        int numberOfPages = 整列済.size();
-//        for (int i = 0; i < numberOfPages; ++i) {
-//            NavigableMap<Float, NavigableSet<Text>> page = 整列済.get(i);
-//            OUT.printf("#file: %s page: %d%n", filename, i + 1);
-//            for (NavigableSet<Text> line : page.values())
-//                for (Text text : line)
-//                    OUT.println(text);
-//        }
-    }
+	static void testRead(String filename, boolean horizontal, String outFile) throws IOException {
+		List<List<String>> texts = IText.読み込み(filename, horizontal);
+		try (PrintWriter wirter = new PrintWriter(new FileWriter(outFile, StandardCharsets.UTF_8))) {
+			for (int i = 0, pageSize = texts.size(); i < pageSize; ++i) {
+				wirter.println("#file: " + filename + " page:" + (i + 1));
+				for (String line : texts.get(i))
+					wirter.println(line);
+			}
+		}
+	}
 
-    @Test
-    public void testRead() throws IOException {
-        testRead("data/tuti.pdf", true);
-//        testRead("data/kokuji.pdf", false);
-    }
+	@Test
+	public void testRead() throws IOException {
+		testRead("data/tuti.pdf", true, "data/tuti-itext.txt");
+//        testRead("data/kokuji.pdf", false, "data/kokuji-itext.txt");
+	}
 }
