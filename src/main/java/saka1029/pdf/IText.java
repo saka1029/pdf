@@ -2,14 +2,15 @@ package saka1029.pdf;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.NavigableMap;
-import java.util.TreeMap;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -23,10 +24,19 @@ import com.itextpdf.text.pdf.parser.TextRenderInfo;
 
 public class IText {
 
+    public static final PrintWriter OUT = new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8), true);
+
     /**
      * A4のポイントサイズ 横約8.27 × 縦約11.69 インチ 595.44 x 841.68 ポイント
      */
     public static final float PAGE_WIDTH = 596F, PAGE_HEIGHT = 842F;
+
+    record Text(float x, float y, float w, float h, String text) {
+        @Override
+        public String toString() {
+            return x + "x" + y + ":" + w + "x" + h + ":" + text;
+        }
+    }
 
     static float round(float f) {
         return Math.round(f);
@@ -47,6 +57,9 @@ public class IText {
         throws IOException {
         parser.processContent(pageNo, new RenderListener() {
             public void renderText(TextRenderInfo info) {
+                String text = info.getText();
+                if (text.isBlank())
+                    return;
                 Rectangle2D.Float baseBox = info.getBaseline().getBoundingRectange();
                 float ascent = info.getAscentLine().getBoundingRectange().y;
                 float descent = info.getDescentLine().getBoundingRectange().y;
@@ -55,7 +68,7 @@ public class IText {
                     round(horizontal ? PAGE_HEIGHT - baseBox.y : PAGE_WIDTH - baseBox.x),
                     round(baseBox.width),
                     round(ascent - descent),
-                    info.getText()));
+                    text));
             }
 
             @Override
@@ -72,13 +85,6 @@ public class IText {
         });
     }
 
-    static final Comparator<Text> COMPARE_TEXT = (a, b) -> {
-        int r = Float.compare(a.x(), b.y());
-        if (r == 0)
-            r = Float.compare(b.y(), a.y());
-        return r;
-    };
-    
     static final Entry<Float, Integer> 既定の文字サイズ = Map.entry(10F, 0);
 
     /**
@@ -99,14 +105,6 @@ public class IText {
     		.getKey();
     }
 
-    static void merge(NavigableMap<Float, List<Text>> aligned) {
-    	float standardCharHeight = frequentCharHeight(aligned.values().stream().flatMap(List::stream));
-    	for (Iterator<Entry<Float, List<Text>>> it = aligned.entrySet().iterator(); it.hasNext();) {
-    		
-    	}
-    	
-    }
-    
     /**
      * 1行分のTextのストリームを文字列に変換します。
      * @param line 1行分のTextのストリームを指定します。
@@ -120,11 +118,11 @@ public class IText {
         float halfWidth = charWidth / 2;
         float start = leftMargin;
         for (Text text : line) {
-            int spaces = Math.round((text.x() - start) / halfWidth);
+            int spaces = Math.round((text.x - start) / halfWidth);
             for (int i = 0; i < spaces; ++i)
                 sb.append(" ");
             sb.append(text.text());
-            start = text.x() + text.w();
+            start = text.x + text.w;
         }
         return sb.toString();
     }
@@ -139,9 +137,12 @@ public class IText {
             for (int pageNo = 1; pageNo <= numberOfPages; ++pageNo) {
                 List<Text> page = new ArrayList<>();
                 parse(parser, horizontal, pageNo, page);
-                NavigableMap<Float, List<Text>> aligned = page.stream()
-                    .collect(Collectors.groupingBy(Text::y, TreeMap::new, Collectors.toList()));
-                merge(aligned);
+                Collections.sort(page, Comparator.comparing(Text::y).thenComparing(Text::x));
+                float leftMargin = (float)page.stream().mapToDouble(Text::x).min().orElse(0);
+                float freqHeight = frequentCharHeight(page.stream());
+                OUT.println("#file " + filename + " page=" + pageNo);
+                for (Text text : page)
+                    OUT.println(toString(List.of(text), leftMargin, freqHeight));
             }
         }
         return result;
