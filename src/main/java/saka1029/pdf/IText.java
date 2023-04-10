@@ -1,6 +1,7 @@
 package saka1029.pdf;
 
 import java.io.Closeable;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -11,10 +12,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import com.itextpdf.awt.geom.Rectangle2D;
 import com.itextpdf.text.pdf.PdfReader;
@@ -25,8 +24,8 @@ import com.itextpdf.text.pdf.parser.TextRenderInfo;
 
 public class IText {
 
-	public static final PrintWriter OUT = new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8),
-			true);
+    public static final String NL = "\n";
+	public static final PrintWriter OUT = new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8), true);
 
 	/**
 	 * A4のポイントサイズ 横約8.27 × 縦約11.69 インチ 595.44 x 841.68 ポイント
@@ -155,6 +154,17 @@ public class IText {
 				pageString.add(toString(line, leftMargin, freqHeight));
 		}
 		return result;
+	}
+	
+	public static void テキスト変換(String filename, boolean horizontal, String outFile) throws IOException {
+		List<List<String>> texts = 読み込み(filename, horizontal);
+		try (PrintWriter wirter = new PrintWriter(new FileWriter(outFile, StandardCharsets.UTF_8))) {
+			for (int i = 0, pageSize = texts.size(); i < pageSize; ++i) {
+				wirter.print("#file: " + filename + " page:" + (i + 1) + NL);
+				for (String line : texts.get(i))
+					wirter.print(line + NL);
+			}
+		}
 	}
 
 }
