@@ -31,6 +31,8 @@ public class IText {
 	 * A4のポイントサイズ 横約8.27 × 縦約11.69 インチ 595.44 x 841.68 ポイント
 	 */
 	public static final float PAGE_WIDTH = 596F, PAGE_HEIGHT = 842F;
+	public static final float LINE_HEIGHT_RATE = 1.2F;
+	public static final float RUBY_RATE = 0.6F;
 
 	record Text(float x, float y, float w, float h, String text) {
 		@Override
@@ -122,26 +124,33 @@ public class IText {
 				parse(parser, horizontal, pageNo, page);
 			}
 		}
+		// 最もインデントの小さい行をレフトマージンとします。
 		float leftMargin = (float) pages.stream()
 			.flatMap(List::stream)
 			.mapToDouble(Text::x)
 			.min().orElse(0);
+		// 行に分割します。
 		for (int pageNo = 1; pageNo < pageSize; ++pageNo) {
 			List<Text> page = pages.get(pageNo - 1);
 			List<String> pageString = new ArrayList<>();
 			result.add(pageString);
 			Collections.sort(page, Comparator.comparing(Text::y).thenComparing(Text::x));
+			// ページ内の最頻出文字高さを求めます。
 			float freqHeight = page.stream()
 					.collect(Collectors.groupingBy(Text::h,
 						Collectors.summingInt(t -> t.text.length())))
 					.entrySet().stream()
 					.max(Entry.comparingByValue())
 					.map(Entry::getKey).orElse(10F);
-			float lineHeight = freqHeight * 1.2F;
+			float lineHeight = freqHeight * LINE_HEIGHT_RATE;  // 1行の高さ
+			float rubyHeight = freqHeight * RUBY_RATE;         // 最大ルビ文字高さ
 			float yStart = -100;
 			List<Text> line = new ArrayList<>();
+			// lineHeight内に収まるテキストを1行にマージします。
 			for (Iterator<Text> it = page.iterator(); it.hasNext();) {
 				Text text = it.next();
+				if (text.h <= rubyHeight && text.text.matches("\\p{IsHiragana}*"))
+				    continue;
 				if (text.y > yStart + lineHeight) {
 					if (!line.isEmpty())
 						pageString.add(toString(line, leftMargin, freqHeight));
