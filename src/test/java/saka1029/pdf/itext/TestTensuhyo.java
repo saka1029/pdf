@@ -15,7 +15,7 @@ import org.junit.Test;
 
 import com.google.gson.Gson;
 
-import saka1029.pdf.ITextPdf;
+import saka1029.pdf.IText;
 
 /**
  * 平成30年、令和1年、令和2年、令和4年の
@@ -80,20 +80,20 @@ public class TestTensuhyo {
 			Param param = param(TENSUHYO_DIR + paramFile);
 			String n = param.年度;
 			String dst = "data/comp/";
-			ITextPdf.toText(path(n, "i", param.医科告示PDF), dst + param.年度 + "-i-kokuji-new.txt", true);
-			ITextPdf.toText(path(n, "i", param.医科通知PDF), dst + param.年度 + "-i-tuti-new.txt", true);
-			ITextPdf.toText(path(n, "s", param.歯科告示PDF), dst + param.年度 + "-s-kokuji-new.txt", true);
-			ITextPdf.toText(path(n, "s", param.歯科通知PDF), dst + param.年度 + "-s-tuti-new.txt", true);
-			ITextPdf.toText(path(n, "t", param.調剤告示PDF), dst + param.年度 + "-t-kokuji-new.txt", true);
-			ITextPdf.toText(path(n, "t", param.調剤通知PDF), dst + param.年度 + "-t-tuti-new.txt", true);
-			ITextPdf.toText(path(n, "k", param.施設基準告示PDF), dst + param.年度 + "-k-kokuji-new.txt", false);
-			ITextPdf.toText(path(n, "k", param.施設基準通知PDF), dst + param.年度 + "-k-tuti-new.txt", true);
+			IText.テキスト変換(path(n, "i", param.医科告示PDF), dst + param.年度 + "-i-kokuji-new.txt", true);
+			IText.テキスト変換(path(n, "i", param.医科通知PDF), dst + param.年度 + "-i-tuti-new.txt", true);
+			IText.テキスト変換(path(n, "s", param.歯科告示PDF), dst + param.年度 + "-s-kokuji-new.txt", true);
+			IText.テキスト変換(path(n, "s", param.歯科通知PDF), dst + param.年度 + "-s-tuti-new.txt", true);
+			IText.テキスト変換(path(n, "t", param.調剤告示PDF), dst + param.年度 + "-t-kokuji-new.txt", true);
+			IText.テキスト変換(path(n, "t", param.調剤通知PDF), dst + param.年度 + "-t-tuti-new.txt", true);
+			IText.テキスト変換(path(n, "k", param.施設基準告示PDF), dst + param.年度 + "-k-kokuji-new.txt", false);
+			IText.テキスト変換(path(n, "k", param.施設基準通知PDF), dst + param.年度 + "-k-tuti-new.txt", true);
 		}
 	}
 
 	@Test
 	public void test() throws IOException {
-//		copyOld();
+		copyOld();
 		copyNew();
 	}
 

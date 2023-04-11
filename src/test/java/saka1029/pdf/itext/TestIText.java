@@ -15,7 +15,7 @@ public class TestIText {
 
 	@Test
 	public void testRead() throws IOException {
-		IText.テキスト変換("data/tuti.pdf", true, "data/tuti-itext.txt");
-        IText.テキスト変換("data/kokuji.pdf", false, "data/kokuji-itext.txt");
+		IText.テキスト変換("data/tuti.pdf", "data/tuti-itext.txt", true);
+        IText.テキスト変換("data/kokuji.pdf", "data/kokuji-itext.txt", false);
 	}
 }
