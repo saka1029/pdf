@@ -112,7 +112,14 @@ public class IText {
         return sb.toString();
     }
 
-    public static List<List<String>> 読み込み(String filename, boolean horizontal) throws IOException {
+    /**
+     * PDFファイル内のテキストを読み込みます。
+     * @param filename
+     * @param horizontal
+     * @return
+     * @throws IOException
+     */
+    static List<List<String>> 追い込み読み(String filename, boolean horizontal) throws IOException {
         List<List<Text>> pages = new ArrayList<>();
         int pageSize;
         List<List<String>> result = new ArrayList<>();
@@ -172,7 +179,7 @@ public class IText {
     }
 
     public static void テキスト変換(String filename, String outFile, boolean horizontal) throws IOException {
-        List<List<String>> texts = 読み込み(filename, horizontal);
+        List<List<String>> texts = 追い込み読み(filename, horizontal);
         try (PrintWriter wirter = new PrintWriter(new FileWriter(outFile, StandardCharsets.UTF_8))) {
             for (int i = 0, pageSize = texts.size(); i < pageSize; ++i) {
                 wirter.print("# file: " + fileName(filename) + " page: " + (i + 1) + NL);
@@ -185,7 +192,7 @@ public class IText {
     public static void テキスト変換(String[] inFiles, String outFile, boolean horizontal) throws IOException {
         try (PrintWriter wirter = new PrintWriter(new FileWriter(outFile, StandardCharsets.UTF_8))) {
             for (String inFile : inFiles) {
-                List<List<String>> texts = 読み込み(inFile, horizontal);
+                List<List<String>> texts = 追い込み読み(inFile, horizontal);
                 for (int i = 0, pageSize = texts.size(); i < pageSize; ++i) {
                     wirter.print("# file: " + fileName(inFile) + " page: " + (i + 1) + NL);
                     for (String line : texts.get(i))
