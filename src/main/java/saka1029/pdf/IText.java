@@ -14,6 +14,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import com.itextpdf.awt.geom.Rectangle2D;
@@ -110,6 +111,66 @@ public class IText {
             start = text.x + text.w;
         }
         return sb.toString();
+    }
+
+    static List<List<String>> 近傍読み(String filename, boolean horizontal) throws IOException {
+        int pageSize;
+        List<List<Text>> pages = new ArrayList<>();
+        PdfReader reader = new PdfReader(filename);
+        try (Closeable c = () -> reader.close()) {
+            pageSize = reader.getNumberOfPages();
+            PdfReaderContentParser parser = new PdfReaderContentParser(reader);
+            for (int pageNo = 1; pageNo <= pageSize; ++pageNo) {
+                List<Text> page = new ArrayList<>();
+                pages.add(page);
+                parse(parser, horizontal, pageNo, page);
+            }
+        }
+        // 最もインデントの小さい行をレフトマージンとします。
+        float leftMargin = (float) pages.stream()
+            .flatMap(List::stream)
+            .mapToDouble(Text::x)
+            .min().orElse(0);
+        List<List<String>> result = new ArrayList<>();
+        for (int pageNo = 1; pageNo <= pageSize; ++pageNo) {
+            List<Text> page = pages.get(pageNo - 1);
+            // ページ内の最頻出文字高さを求めます。
+            float freqHeight = page.stream()
+                .collect(Collectors.groupingBy(Text::h,
+                    Collectors.summingInt(t -> t.text.length())))
+                .entrySet().stream()
+                .max(Entry.comparingByValue())
+                .map(Entry::getKey).orElse(10F);
+            float lineHeight = freqHeight * LINE_HEIGHT_RATE; // 1行の高さ
+            float rubyHeight = freqHeight * RUBY_RATE; // 最大ルビ文字高さ
+            // y座標の値で行に集約します。
+            TreeMap<Float, List<Text>> lines = page.stream()
+                .collect(Collectors.groupingBy(Text::y, TreeMap::new, Collectors.toList()));
+            Iterator<Entry<Float, List<Text>>> it = lines.entrySet().iterator();
+            if (!it.hasNext())
+                continue;
+            Entry<Float, List<Text>> prev = it.next();
+            while (it.hasNext()) {
+                Entry<Float, List<Text>> cur = it.next();
+                float prevcur = Math.abs(prev.getKey() - cur.getKey());
+                if (prevcur < lineHeight) {
+                    it.remove();
+                    if (it.hasNext()) {
+                        Entry<Float, List<Text>> next = it.next();
+                        float curnext = Math.abs(cur.getKey() - next.getKey());
+                        (prevcur < curnext ? prev : next).getValue().addAll(cur.getValue());
+                        prev = next;
+                    } else
+                        prev.getValue().addAll(cur.getValue());
+                } else
+                    prev = cur;
+            }
+            List<String> linesString = lines.values().stream()
+                .map(line -> toString(line, leftMargin, freqHeight))
+                .toList();
+            result.add(linesString);
+        }
+        return result;
     }
 
     /**
