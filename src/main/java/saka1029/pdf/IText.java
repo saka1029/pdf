@@ -236,14 +236,14 @@ public class IText {
     }
 
     static String fileName(String path) {
-        return Path.of(path).getFileName().toString();
+        return Path.of(path).toString();
     }
 
     public static void テキスト変換(String filename, String outFile, boolean horizontal) throws IOException {
-        List<List<String>> texts = 追い込み読み(filename, horizontal);
+        List<List<String>> texts = 近傍読み(filename, horizontal);
         try (PrintWriter wirter = new PrintWriter(new FileWriter(outFile, StandardCharsets.UTF_8))) {
             for (int i = 0, pageSize = texts.size(); i < pageSize; ++i) {
-                wirter.print("# file: " + fileName(filename) + " page: " + (i + 1) + NL);
+                wirter.print("#file: " + fileName(filename) + " page: " + (i + 1) + NL);
                 for (String line : texts.get(i))
                     wirter.print(line + NL);
             }
@@ -253,9 +253,9 @@ public class IText {
     public static void テキスト変換(String[] inFiles, String outFile, boolean horizontal) throws IOException {
         try (PrintWriter wirter = new PrintWriter(new FileWriter(outFile, StandardCharsets.UTF_8))) {
             for (String inFile : inFiles) {
-                List<List<String>> texts = 追い込み読み(inFile, horizontal);
+                List<List<String>> texts = 近傍読み(inFile, horizontal);
                 for (int i = 0, pageSize = texts.size(); i < pageSize; ++i) {
-                    wirter.print("# file: " + fileName(inFile) + " page: " + (i + 1) + NL);
+                    wirter.print("#file: " + fileName(inFile) + " page: " + (i + 1) + NL);
                     for (String line : texts.get(i))
                         wirter.print(line + NL);
                 }
