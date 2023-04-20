@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -34,7 +35,7 @@ public class IText {
      * A4のポイントサイズ 横約8.27 × 縦約11.69 インチ 595.44 x 841.68 ポイント
      */
     public static final float PAGE_WIDTH = 596F, PAGE_HEIGHT = 842F;
-    public static final float LINE_HEIGHT_RATE = 1.2F;
+    public static final float LINE_HEIGHT_RATE = 1.5F;
     public static final float RUBY_RATE = 0.6F;
 
     record Text(float x, float y, float w, float h, String text) {
@@ -112,6 +113,10 @@ public class IText {
         }
         return sb.toString();
     }
+    
+    static <K, V> Entry<K, V> copy(Entry<K, V> org) {
+        return Map.entry(org.getKey(), org.getValue());
+    }
 
     static List<List<String>> 近傍読み(String filename, boolean horizontal) throws IOException {
         int pageSize;
@@ -151,7 +156,9 @@ public class IText {
                 continue;
             Entry<Float, List<Text>> prev = it.next();
             while (it.hasNext()) {
-                Entry<Float, List<Text>> cur = it.next();
+                // 次のエントリーを取り出すがremove()に備えてコピーする。
+                Entry<Float, List<Text>> temp = it.next();
+                Entry<Float, List<Text>> cur = Map.entry(temp.getKey(), temp.getValue());
                 float prevcur = Math.abs(prev.getKey() - cur.getKey());
                 if (prevcur < lineHeight) {
                     it.remove();
@@ -236,7 +243,8 @@ public class IText {
     }
 
     static String fileName(String path) {
-        return Path.of(path).toString();
+//        return Path.of(path).toString();
+        return path;
     }
 
     public static void テキスト変換(String filename, String outFile, boolean horizontal) throws IOException {
