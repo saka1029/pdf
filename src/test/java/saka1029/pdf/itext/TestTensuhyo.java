@@ -12,14 +12,13 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Set;
 
 import org.junit.Test;
 
 import com.google.gson.Gson;
 
 import saka1029.pdf.IText;
-import saka1029.pdf.IText.DebugElement;
 
 /**
  * 平成30年、令和1年、令和2年、令和4年の
@@ -31,7 +30,7 @@ public class TestTensuhyo {
 	static final String TENSUHYO_DIR = "../tensuhyo/";
 	static final String TENSUHYO_DATA_DIR = TENSUHYO_DIR + "data/in/";
 	static final String[] PARAMS = {
-		"h3004.json",
+//		"h3004.json",   平成30年度と令和元年度はPDF自体は同一なので除外する。
 		"r0110.json",
 		"r0204.json",
 		"r0404.json"
@@ -102,31 +101,41 @@ public class TestTensuhyo {
 		}
 	}
 	
-	static final Map<String, int[]> DEBUG_MAP = new HashMap<>();
+	static final Map<String, Map<Integer, Set<Integer>>> DEBUG_MAP = new HashMap<>();
 	static {
-	    DEBUG_MAP.put("", new int[] {1, 2});
+//	    DEBUG_MAP.put(ファイル名, Map.of(ページ番号, Set.of(行番号...)));
+	    DEBUG_MAP.put("0000196290.pdf", Map.of(9, Set.of(21, 22, 27, 28)));
 	}
 	
-	static final IText.DebugElement DEBUG = (path, pageNo, lineNo, elements) -> {
+	static final IText.DebugElement DEBUG_ELEMENT = (path, pageNo, lineNo, elements) -> {
 	    String fileName = Path.of(path).getFileName().toString();
-	    int[] lineNoRange = DEBUG_MAP.get(fileName);
-	    if (lineNoRange != null && lineNo >= lineNoRange[0] && lineNo <= lineNoRange[1])
-	        OUT.printf("%s:%d:%d:%s%n", fileName, pageNo, lineNo, elements);
+	    Map<Integer, Set<Integer>> pageLine = DEBUG_MAP.get(fileName);
+	    if (pageLine != null) {
+            Set<Integer> lines = pageLine.get(pageNo);
+            if (lines != null && lines.contains(lineNo))
+                OUT.printf("%s:%d:%d:%s%n", fileName, pageNo, lineNo, elements);
+	    }
 	};
+
+	static void copy(boolean horizontal, String src, String... dests) throws IOException {
+	    IText itext = new IText(horizontal);
+	    itext.debugElement = DEBUG_ELEMENT;
+	    itext.テキスト変換(src, dests);
+	}
 
 	static void copyNew() throws IOException {
 		for (String paramFile : PARAMS) {
 			Param param = param(TENSUHYO_DIR + paramFile);
 			String n = param.年度;
 			String dst = "data/comp/";
-			new IText(true).テキスト変換(dst + param.年度 + "-i-kokuji-new.txt", path(n, "i", param.医科告示PDF));
-			new IText(true).テキスト変換(dst + param.年度 + "-i-tuti-new.txt", path(n, "i", param.医科通知PDF));
-			new IText(true).テキスト変換(dst + param.年度 + "-s-kokuji-new.txt", path(n, "s", param.歯科告示PDF));
-			new IText(true).テキスト変換(dst + param.年度 + "-s-tuti-new.txt", path(n, "s", param.歯科通知PDF));
-			new IText(true).テキスト変換(dst + param.年度 + "-t-kokuji-new.txt", path(n, "t", param.調剤告示PDF));
-			new IText(true).テキスト変換(dst + param.年度 + "-t-tuti-new.txt", path(n, "t", param.調剤通知PDF));
-			new IText(false).テキスト変換(dst + param.年度 + "-k-kokuji-new.txt", path(n, "k", param.施設基準告示PDF));
-			new IText(true).テキスト変換(dst + param.年度 + "-k-tuti-new.txt", path(n, "k", param.施設基準通知PDF));
+			copy(true, dst + param.年度 + "-i-kokuji-new.txt", path(n, "i", param.医科告示PDF));
+			copy(true, dst + param.年度 + "-i-tuti-new.txt", path(n, "i", param.医科通知PDF));
+			copy(true, dst + param.年度 + "-s-kokuji-new.txt", path(n, "s", param.歯科告示PDF));
+			copy(true, dst + param.年度 + "-s-tuti-new.txt", path(n, "s", param.歯科通知PDF));
+			copy(true, dst + param.年度 + "-t-kokuji-new.txt", path(n, "t", param.調剤告示PDF));
+			copy(true, dst + param.年度 + "-t-tuti-new.txt", path(n, "t", param.調剤通知PDF));
+			copy(false, dst + param.年度 + "-k-kokuji-new.txt", path(n, "k", param.施設基準告示PDF));
+			copy(true, dst + param.年度 + "-k-tuti-new.txt", path(n, "k", param.施設基準通知PDF));
 		}
 	}
 
