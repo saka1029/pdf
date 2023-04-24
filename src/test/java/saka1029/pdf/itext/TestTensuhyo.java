@@ -10,12 +10,16 @@ import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.junit.Test;
 
 import com.google.gson.Gson;
 
 import saka1029.pdf.IText;
+import saka1029.pdf.IText.DebugElement;
 
 /**
  * 平成30年、令和1年、令和2年、令和4年の
@@ -33,7 +37,7 @@ public class TestTensuhyo {
 		"r0404.json"
 	};
 
-	static PrintWriter out = new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8), true);
+	static PrintWriter OUT = new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8), true);
 
 	static class Param {
 		String 元号, 年度;
@@ -97,20 +101,32 @@ public class TestTensuhyo {
 			Files.copy(src.resolve("k/txt/tuti.txt"), dst.resolve(param.年度 + "-k-tuti-old.txt"), OW);
 		}
 	}
+	
+	static final Map<String, int[]> DEBUG_MAP = new HashMap<>();
+	static {
+	    DEBUG_MAP.put("", new int[] {1, 2});
+	}
+	
+	static final IText.DebugElement DEBUG = (path, pageNo, lineNo, elements) -> {
+	    String fileName = Path.of(path).getFileName().toString();
+	    int[] lineNoRange = DEBUG_MAP.get(fileName);
+	    if (lineNoRange != null && lineNo >= lineNoRange[0] && lineNo <= lineNoRange[1])
+	        OUT.printf("%s:%d:%d:%s%n", fileName, pageNo, lineNo, elements);
+	};
 
 	static void copyNew() throws IOException {
 		for (String paramFile : PARAMS) {
 			Param param = param(TENSUHYO_DIR + paramFile);
 			String n = param.年度;
 			String dst = "data/comp/";
-			new IText(true).テキスト変換(param.年度 + "-i-kokuji-new.txt", path(n, "i", param.医科告示PDF));
-			new IText(true).テキスト変換(param.年度 + "-i-tuti-new.txt", path(n, "i", param.医科通知PDF));
-			new IText(true).テキスト変換(param.年度 + "-s-kokuji-new.txt", path(n, "s", param.歯科告示PDF));
-			new IText(true).テキスト変換(param.年度 + "-s-tuti-new.txt", path(n, "s", param.歯科通知PDF));
-			new IText(true).テキスト変換(param.年度 + "-t-kokuji-new.txt", path(n, "t", param.調剤告示PDF));
-			new IText(true).テキスト変換(param.年度 + "-t-tuti-new.txt", path(n, "t", param.調剤通知PDF));
-			new IText(false).テキスト変換(param.年度 + "-k-kokuji-new.txt", path(n, "k", param.施設基準告示PDF));
-			new IText(true).テキスト変換(param.年度 + "-k-tuti-new.txt", path(n, "k", param.施設基準通知PDF));
+			new IText(true).テキスト変換(dst + param.年度 + "-i-kokuji-new.txt", path(n, "i", param.医科告示PDF));
+			new IText(true).テキスト変換(dst + param.年度 + "-i-tuti-new.txt", path(n, "i", param.医科通知PDF));
+			new IText(true).テキスト変換(dst + param.年度 + "-s-kokuji-new.txt", path(n, "s", param.歯科告示PDF));
+			new IText(true).テキスト変換(dst + param.年度 + "-s-tuti-new.txt", path(n, "s", param.歯科通知PDF));
+			new IText(true).テキスト変換(dst + param.年度 + "-t-kokuji-new.txt", path(n, "t", param.調剤告示PDF));
+			new IText(true).テキスト変換(dst + param.年度 + "-t-tuti-new.txt", path(n, "t", param.調剤通知PDF));
+			new IText(false).テキスト変換(dst + param.年度 + "-k-kokuji-new.txt", path(n, "k", param.施設基準告示PDF));
+			new IText(true).テキスト変換(dst + param.年度 + "-k-tuti-new.txt", path(n, "k", param.施設基準通知PDF));
 		}
 	}
 

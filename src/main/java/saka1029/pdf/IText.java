@@ -6,8 +6,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -32,7 +32,7 @@ public class IText {
 	 */
 	public static final float PAGE_WIDTH = 596F, PAGE_HEIGHT = 842F;
 
-	record Element(float x, float y, float w, float h, String text) {
+	public record Element(float x, float y, float w, float h, String text) {
 		public int length() {
 			return text.length();
 		}
@@ -43,8 +43,8 @@ public class IText {
 		}
 	}
 	
-	interface DebugElement {
-		void element(String path, int pageNo, int lineNo, TreeSet<Element> element);
+	public interface DebugElement {
+		void element(String path, int pageNo, int lineNo, TreeSet<Element> elements);
 	}
 
 	// オプションパラメータ
@@ -120,7 +120,7 @@ public class IText {
 	}
 
 	static String lineDirective(String path, int pageNo) {
-		return "#file: %s page: %d".formatted(path, pageNo);
+		return "#file: %s page: %d".formatted(Path.of(path).getFileName(), pageNo);
 	}
 
 	public List<List<String>> read(String... paths) throws IOException {
