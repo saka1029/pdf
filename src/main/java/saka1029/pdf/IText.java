@@ -13,6 +13,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import com.itextpdf.awt.geom.Rectangle2D;
@@ -35,10 +36,15 @@ public class IText {
 		public int length() {
 			return text.length();
 		}
+		
+		@Override
+		public String toString() {
+			return "%sx%s@%s%s:%s".formatted(x, y, w, h, text);
+		}
 	}
 	
-	interface DebugParse {
-		void visit(String path, int pageNo, Element element);
+	interface DebugElement {
+		void element(String path, int pageNo, int lineNo, TreeSet<Element> element);
 	}
 
 	// オプションパラメータ
@@ -47,7 +53,7 @@ public class IText {
 	public float lineHeightRate = 1.2F;
 	public float rubyRate = 0.6F;
 	public float defaultHeight = 10F;
-	public DebugParse debugParse = null;
+	public DebugElement debugElement = null;
 
 	// ローカルフィールド
 	public final boolean horizontal;
@@ -76,8 +82,6 @@ public class IText {
 						round(baseBox.width),
 						round(ascent - descent), text);
 				page.add(element);
-				if (debugParse != null)
-					debugParse.visit(path, pageNo, element);
 			}
 
 			@Override
@@ -101,12 +105,11 @@ public class IText {
 	static final Comparator<Element> IN_LINE_SORT = Comparator.comparing(Element::x)
 			.thenComparing(Comparator.comparing(Element::y).reversed());
 
-	String string(Collection<Element> line, float leftMargin, float charWidth) {
-		List<Element> sorted = line.stream().sorted(IN_LINE_SORT).toList();
+	String string(TreeSet<Element> line, float leftMargin, float charWidth) {
 		StringBuilder sb = new StringBuilder();
 		float halfWidth = charWidth / 2;
 		float start = leftMargin;
-		for (Element e : sorted) {
+		for (Element e : line) {
 			int spaces = Math.round((e.x - start) / halfWidth);
 			for (int i = 0; i < spaces; ++i)
 				sb.append(" ");
@@ -163,22 +166,29 @@ public class IText {
 				float lineHeight = freqHeight * lineHeightRate; // 1行の高さ
 				float rubyHeight = freqHeight * rubyRate; // 最大ルビ文字高さ
 				float yStart = -100;
-				List<Element> line = new ArrayList<>();
+				int lineNo = 0;
+				TreeSet<Element> line = new TreeSet<>(IN_LINE_SORT);
 				// lineHeight内に収まるテキストを1行にマージします。
 				for (Iterator<Element> it = page.iterator(); it.hasNext();) {
 					Element element = it.next();
 					if (element.h <= rubyHeight && element.text.matches("\\p{IsHiragana}*"))
 						continue;
 					if (element.y > yStart + lineHeight) {
-						if (!line.isEmpty())
+						if (!line.isEmpty()) {
 							pageString.add(string(line, leftMargin, freqHeight));
+							if (debugElement != null)
+								debugElement.element(path, pageNo, ++lineNo, line);
+						}
 						line.clear();
 						yStart = element.y;
 					}
 					line.add(element);
 				}
-				if (!line.isEmpty())
+				if (!line.isEmpty()) {
 					pageString.add(string(line, leftMargin, freqHeight));
+					if (debugElement != null)
+						debugElement.element(path, pageNo, ++lineNo, line);
+				}
 			}
 		}
 		return result;

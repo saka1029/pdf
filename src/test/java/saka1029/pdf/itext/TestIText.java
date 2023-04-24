@@ -19,7 +19,7 @@ public class TestIText {
 
 	@Test
 	public void testRead() throws IOException {
-//		new IText(false).テキスト変換("data/tuti-itext.txt", "data/tuti.pdf");
+		new IText(true).テキスト変換("data/tuti-itext.txt", "data/tuti.pdf");
 		new IText(false).テキスト変換("data/kokuji-itext.txt", "data/kokuji.pdf");
 	}
 }

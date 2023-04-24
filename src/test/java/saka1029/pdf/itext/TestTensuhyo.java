@@ -43,13 +43,44 @@ public class TestTensuhyo {
 		String[] 施設基準告示PDF, 施設基準通知PDF;
 	}
 
+	static final CopyOption OW = StandardCopyOption.REPLACE_EXISTING;
+
 	static Param param(String jsonFile) throws IOException {
 		try (Reader reader = new FileReader(jsonFile)) {
 			return new Gson().fromJson(reader, Param.class);
 		}
 	}
+	
+	static String[] path(String nendo, String tensuhyo, String[] names) {
+		int length = names.length;
+		String[] t = new String[length];
+		for (int i = 0; i < length; ++i)
+			t[i] = TENSUHYO_DATA_DIR + nendo + "/" + tensuhyo + "/pdf/" + names[i];
+		return t;
+	}
 
-	static CopyOption OW = StandardCopyOption.REPLACE_EXISTING;
+	static void copy(String[] srcs, Path dst) throws IOException {
+		for (String src : srcs) {
+			Path srcPath = Path.of(src);
+			Files.copy(srcPath, dst.resolve(srcPath.getFileName()), OW);
+		}
+	}
+
+	static void copyOldPdf() throws IOException {
+		for (String paramFile : PARAMS) {
+			Param param = param(TENSUHYO_DIR + paramFile);
+			String n = param.年度;
+			Path dst = Path.of("data", "comp");
+			copy(path(n, "i", param.医科告示PDF), dst);
+			copy(path(n, "i", param.医科通知PDF), dst);
+			copy(path(n, "s", param.歯科告示PDF), dst);
+			copy(path(n, "s", param.歯科通知PDF), dst);
+			copy(path(n, "t", param.調剤告示PDF), dst);
+			copy(path(n, "t", param.調剤通知PDF), dst);
+			copy(path(n, "k", param.施設基準告示PDF), dst);
+			copy(path(n, "k", param.施設基準通知PDF), dst);
+		}
+	}
 
 	static void copyOld() throws IOException {
 		for (String paramFile : PARAMS) {
@@ -65,14 +96,6 @@ public class TestTensuhyo {
 			Files.copy(src.resolve("k/txt/kokuji.txt"), dst.resolve(param.年度 + "-k-kokuji-old.txt"), OW);
 			Files.copy(src.resolve("k/txt/tuti.txt"), dst.resolve(param.年度 + "-k-tuti-old.txt"), OW);
 		}
-	}
-	
-	static String[] path(String nendo, String tensuhyo, String[] names) {
-		int length = names.length;
-		String[] t = new String[length];
-		for (int i = 0; i < length; ++i)
-			t[i] = TENSUHYO_DATA_DIR + nendo + "/" + tensuhyo + "/pdf/" + names[i];
-		return t;
 	}
 
 	static void copyNew() throws IOException {
@@ -93,6 +116,7 @@ public class TestTensuhyo {
 
 	@Test
 	public void test() throws IOException {
+		copyOldPdf();
 		copyOld();
 		copyNew();
 	}
