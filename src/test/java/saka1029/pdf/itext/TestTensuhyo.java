@@ -101,12 +101,18 @@ public class TestTensuhyo {
 		}
 	}
 	
+	/**
+	 * デバッグ出力するファイル名、ページ番号、行番号を指定します。
+	 */
 	static final Map<String, Map<Integer, Set<Integer>>> DEBUG_MAP = new HashMap<>();
 	static {
 //	    DEBUG_MAP.put(ファイル名, Map.of(ページ番号, Set.of(行番号...)));
 	    DEBUG_MAP.put("0000196290.pdf", Map.of(9, Set.of(20, 21, 22, 26, 27, 28)));
 	}
 	
+	/**
+	 * DEBUG_MAPで指定した条件に合致する行(Elementの集合)を出力します。
+	 */
 	static final IText.DebugElement DEBUG_ELEMENT = (path, pageNo, lineNo, elements) -> {
 	    String fileName = Path.of(path).getFileName().toString();
 	    Map<Integer, Set<Integer>> pageLine = DEBUG_MAP.get(fileName);
