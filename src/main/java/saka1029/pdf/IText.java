@@ -10,10 +10,13 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.itextpdf.awt.geom.Rectangle2D;
@@ -50,10 +53,13 @@ public class IText {
 	// オプションパラメータ
 	public String newLine = "\n";
 	public Charset outCharset = StandardCharsets.UTF_8;
-	public float lineHeightRate = 1.2F;
+//	public float lineHeightRate = 1.2F;
+	public float lineRangeRate = 0.5F;
 	public float rubyRate = 0.6F;
 	public float defaultHeight = 10F;
+	public float defaultFreqLineSpace = 14F;
 	public DebugElement debugElement = null;
+	public Pattern pagePattern = Pattern.compile("^\\s*\\S*\\s*-\\s*\\d+\\s*-\\s*$");
 
 	// ローカルフィールド
 	public final boolean horizontal;
@@ -105,7 +111,14 @@ public class IText {
 	static final Comparator<Element> IN_LINE_SORT = Comparator.comparing(Element::x)
 			.thenComparing(Comparator.comparing(Element::y).reversed());
 
-	String string(TreeSet<Element> line, float leftMargin, float charWidth) {
+	/**
+	 * 1行を表すElementのリストを文字列に変換します。
+	 * @param line Elementのリストを指定します。
+	 * @param leftMargin 行先頭の無視するx座標値を指定します。
+	 * @param charWidth 平均的な1文字の幅を指定します。
+	 * @return Elementを連結した文字列を返します。
+	 */
+	String stringPrimitive(TreeSet<Element> line, float leftMargin, float charWidth) {
 		StringBuilder sb = new StringBuilder();
 		float halfWidth = charWidth / 2;
 		float start = leftMargin;
@@ -117,6 +130,52 @@ public class IText {
 			start = e.x + e.w;
 		}
 		return sb.toString();
+	}
+	
+	/**
+	 * 1行を表すElementのリストを文字列に変換します。
+	 * ページ番号行のパターン(pagePattern)に一致した場合は
+	 * 先頭に"#"を付与します。
+	 * @param line Elementのリストを指定します。
+	 * @param leftMargin 行先頭の無視するx座標値を指定します。
+	 * @param charWidth 平均的な1文字の幅を指定します。
+	 * @return Elementを連結した文字列を返します。
+	 */
+	String string(TreeSet<Element> line, float leftMargin, float charWidth) {
+		return pagePattern
+			.matcher(stringPrimitive(line, leftMargin, charWidth))
+			.replaceFirst("#$0");
+	}
+
+	/**
+	 * 行の高さの最頻値を求めます。
+	 */
+	float freqLineSpace(List<Element> page) {
+		TreeSet<Float> yValues = page.stream()
+			.map(Element::y)
+			.collect(Collectors.toCollection(TreeSet::new));
+		Map<Float, Integer> histogram = new HashMap<>();
+		float prev = Integer.MIN_VALUE;
+		for (float y : yValues) {
+			if (prev != Integer.MIN_VALUE) {
+				histogram.compute(y - prev, (k, v) -> v == null ? 1 : v + 1);
+				prev = y;
+			}
+		}
+		return histogram.entrySet().stream()
+			.max(Entry.comparingByValue())
+			.map(Entry::getKey)
+			.orElse(defaultFreqLineSpace);
+	}
+	
+	float freqHeight(List<Element> page) {
+		return page.stream()
+			.collect(Collectors.groupingBy(Element::h,
+				Collectors.summingInt(Element::length)))
+			.entrySet().stream()
+			.max(Entry.comparingByValue())
+			.map(Entry::getKey)
+			.orElse(defaultHeight);
 	}
 
 	static String lineDirective(String path, int pageNo) {
@@ -155,16 +214,12 @@ public class IText {
 				result.add(pageString);
 				pageString.add(lineDirective(path, pageNo));
 				Collections.sort(page, IN_PAGE_SORT);
-				// ページ内の最頻出文字高さを求めます。
-				float freqHeight = page.stream()
-					.collect(Collectors.groupingBy(Element::h,
-						Collectors.summingInt(Element::length)))
-					.entrySet().stream()
-					.max(Entry.comparingByValue())
-					.map(Entry::getKey)
-					.orElse(defaultHeight);
-				float lineHeight = freqHeight * lineHeightRate; // 1行の高さ
-				float rubyHeight = freqHeight * rubyRate; // 最大ルビ文字高さ
+				// 同一行の範囲を求めます。
+				float lineRange = freqLineSpace(page) * lineRangeRate;
+				// 文字高さの最頻値を求めます。
+				float freqHeight = freqHeight(page);
+				// ビ文字の最大の高さを求めます。
+				float rubyHeight = freqHeight * rubyRate;
 				float yStart = -100;
 				int lineNo = 0;
 				TreeSet<Element> line = new TreeSet<>(IN_LINE_SORT);
@@ -173,7 +228,7 @@ public class IText {
 					Element element = it.next();
 					if (element.h <= rubyHeight && element.text.matches("\\p{IsHiragana}*"))
 						continue;
-					if (element.y > yStart + lineHeight) {
+					if (element.y > yStart + lineRange) {
 						if (!line.isEmpty()) {
 							pageString.add(string(line, leftMargin, freqHeight));
 							if (debugElement != null)
