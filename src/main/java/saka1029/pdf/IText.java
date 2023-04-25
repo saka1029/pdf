@@ -10,10 +10,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
@@ -51,13 +49,12 @@ public class IText {
 	}
 	
 	public interface DebugElement {
-		void element(String path, int pageNo, int lineNo, TreeSet<Element> elements);
+		void element(String path, int pageNo, float lineSpace, float lineHeight, int lineNo, TreeSet<Element> elements);
 	}
 
 	// オプションパラメータ
 	public String newLine = "\n";
 	public Charset outCharset = StandardCharsets.UTF_8;
-//	public float lineHeightRate = 1.2F;
 	public float lineRangeRate = 0.5F;
 	public float rubyRate = 0.6F;
 	public float defaultHeight = 10F;
@@ -152,24 +149,33 @@ public class IText {
 	}
 
 	/**
-	 * 行の高さの最頻値を求めます。
+	 * 行の高さの最大値を求めます。
 	 */
 	float freqLineSpace(List<Element> page) {
 		TreeSet<Float> yValues = page.stream()
 			.map(Element::y)
 			.collect(Collectors.toCollection(TreeSet::new));
-		Map<Float, Integer> histogram = new HashMap<>();
-		float prev = Integer.MIN_VALUE;
+		float max = -1000F, prev = -1000F;
 		for (float y : yValues) {
-			if (prev != Integer.MIN_VALUE) {
-				histogram.compute(y - prev, (k, v) -> v == null ? 1 : v + 1);
-				prev = y;
-			}
+		    if (prev != -1000F)
+		        max = Math.max(max, y - prev);
+		    prev = y;
 		}
-		return histogram.entrySet().stream()
-			.max(Entry.comparingByValue())
-			.map(Entry::getKey)
-			.orElse(defaultFreqLineSpace);
+		return max == -1000F ? defaultFreqLineSpace : max;
+//		TreeSet<Float> yValues = page.stream()
+//			.map(Element::y)
+//			.collect(Collectors.toCollection(TreeSet::new));
+//		Map<Float, Integer> histogram = new HashMap<>();
+//		float prev = -1000F;
+//		for (float y : yValues) {
+//			if (prev != -1000F)
+//				histogram.compute(y - prev, (k, v) -> v == null ? 1 : v + 1);
+//            prev = y;
+//		}
+//		return histogram.entrySet().stream()
+//			.max(Entry.comparingByValue())
+//			.map(Entry::getKey)
+//			.orElse(defaultFreqLineSpace);
 	}
 	
 	float freqHeight(List<Element> page) {
@@ -219,11 +225,12 @@ public class IText {
 				pageString.add(lineDirective(path, pageNo));
 				Collections.sort(page, IN_PAGE_SORT);
 				// 同一行の範囲を求めます。
-				float lineRange = freqLineSpace(page) * lineRangeRate;
+				float lineSpace = freqLineSpace(page);
+				float lineRange = lineSpace * lineRangeRate;
 				// 文字高さの最頻値を求めます。
-				float freqHeight = freqHeight(page);
+				float lineHeight = freqHeight(page);
 				// ビ文字の最大の高さを求めます。
-				float rubyHeight = freqHeight * rubyRate;
+				float rubyHeight = lineHeight * rubyRate;
 				float yStart = -100;
 				int lineNo = 0;
 				TreeSet<Element> line = new TreeSet<>(IN_LINE_SORT);
@@ -234,9 +241,9 @@ public class IText {
 						continue;
 					if (element.y > yStart + lineRange) {
 						if (!line.isEmpty()) {
-							pageString.add(string(line, leftMargin, freqHeight));
+							pageString.add(string(line, leftMargin, lineHeight));
 							if (debugElement != null)
-								debugElement.element(path, pageNo, ++lineNo, line);
+								debugElement.element(path, pageNo, lineSpace, lineHeight, ++lineNo, line);
 						}
 						line.clear();
 						yStart = element.y;
@@ -244,9 +251,9 @@ public class IText {
 					line.add(element);
 				}
 				if (!line.isEmpty()) {
-					pageString.add(string(line, leftMargin, freqHeight));
+					pageString.add(string(line, leftMargin, lineHeight));
 					if (debugElement != null)
-						debugElement.element(path, pageNo, ++lineNo, line);
+						debugElement.element(path, pageNo, lineSpace, lineHeight, ++lineNo, line);
 				}
 			}
 		}
