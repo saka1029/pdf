@@ -37,9 +37,13 @@ public class IText {
 			return text.length();
 		}
 		
+		static String i(float f) {
+		    return ("" + f).replaceFirst("\\.0$", "");
+		}
+
 		@Override
 		public String toString() {
-			return "%sx%s@%s%s:%s".formatted(x, y, w, h, text);
+			return "%sx%s@%sx%s:%s".formatted(i(x), i(y), i(w), i(h), text);
 		}
 	}
 	
