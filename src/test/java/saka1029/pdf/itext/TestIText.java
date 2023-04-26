@@ -24,7 +24,8 @@ public class TestIText {
 
 	static {
 //	    DEBUG_MAP.put(ファイル名, Map.of(ページ番号, Set.of(行番号...)));
-	    DEBUG_MAP.put("data/kokuji.pdf", Map.of(22, Set.of(8, 9, 10, 11)));
+//	    DEBUG_MAP.put("data/kokuji.pdf", Map.of(22, Set.of(8, 9, 10, 11)));
+	    DEBUG_MAP.put("data/tuti.pdf", Map.of(1, Set.of(1, 2, 3, 4, 5, 6, 7, 8)));
 	}
 	
 	/**
@@ -47,7 +48,7 @@ public class TestIText {
 
 	@Test
 	public void testRead() throws IOException {
-//		read(true, "data/tuti-itext.txt", "data/tuti.pdf");
+		read(true, "data/tuti-itext.txt", "data/tuti.pdf");
 		read(false, "data/kokuji-itext.txt", "data/kokuji.pdf");
 	}
 	

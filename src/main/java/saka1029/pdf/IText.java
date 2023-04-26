@@ -10,9 +10,12 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -112,6 +115,30 @@ public class IText {
 	static final Comparator<Element> IN_LINE_SORT = Comparator.comparing(Element::x)
 			.thenComparing(Comparator.comparing(Element::y).reversed());
 
+	TreeMap<Float, TreeSet<Element>> splitLines(List<Element> page) {
+	    TreeMap<Float, TreeSet<Element>> result = new TreeMap<>();
+	    for (Element e : page) {
+	        result.computeIfAbsent(e.y, k -> new TreeSet<>(IN_LINE_SORT)).add(e);
+	    }
+	    return result;
+	}
+	
+	record 文書属性(float 左余白, float 行間隔, float 行高さ, float ルビ高さ) {
+	}
+	
+	文書属性 文書属性(TreeMap<Float, TreeSet<Element>> page) {
+        float 左余白 = Float.MAX_VALUE, 行間隔, 行高さ, ルビ高さ;
+        Map<Float, Integer> 行高さ度数分布 = new HashMap<>();
+        for (Entry<Float, TreeSet<Element>> line : page.entrySet()) {
+            左余白 = Math.min(左余白, line.getValue().first().x);
+            for (Element e : line.getValue()) {
+                
+            }
+        }
+
+        return new 文書属性(左余白, 行間隔, 行高さ, ルビ高さ);
+	}
+
 	/**
 	 * 1行を表すElementのリストを文字列に変換します。
 	 * @param line Elementのリストを指定します。
@@ -192,33 +219,11 @@ public class IText {
 		return "#file: %s page: %d".formatted(Path.of(path).getFileName(), pageNo);
 	}
 
-	public List<List<String>> read(String... paths) throws IOException {
-		int pathCount = paths.length;
-		List<List<String>> result = new ArrayList<>();
-		List<List<List<Element>>> files = new ArrayList<>();
-		for (String path : paths) {
-			List<List<Element>> file = new ArrayList<>();
-			files.add(file);
-			PdfReader reader = new PdfReader(path);
-			try (Closeable c = () -> reader.close()) {
-				int pageSize = reader.getNumberOfPages();
-				PdfReaderContentParser parser = new PdfReaderContentParser(reader);
-				for (int pageNo = 1; pageNo <= pageSize; ++pageNo)
-					file.add(parse(path, parser, pageNo));
-			}
-		}
-		// 最もインデントの小さい行をレフトマージンとします。
-		float leftMargin = (float) files.stream()
-			.flatMap(List::stream)
-			.flatMap(List::stream)
-			.mapToDouble(e -> e.x)
-			.min().orElse(0);
-		// 行に分割します。
-		for (int pathNo = 0; pathNo < pathCount; ++pathNo) {
-			String path = paths[pathNo];
-			List<List<Element>> pages = files.get(pathNo);
-			int pageSize = pages.size();
-			for (int pageNo = 1; pageNo <= pageSize; ++pageNo) {
+	/**
+	 * Elementをフォーマットして文字列に変換します。
+	 */
+	public void format(String path, List<List<Element>> pages, float leftMargin, List<List<String>> result) {
+			for (int pageNo = 1, pageSize = pages.size(); pageNo <= pageSize; ++pageNo) {
 				List<Element> page = pages.get(pageNo - 1);
 				List<String> pageString = new ArrayList<>();
 				result.add(pageString);
@@ -246,9 +251,9 @@ public class IText {
 								debugElement.element(path, pageNo, lineSpace, lineHeight, ++lineNo, line);
 						}
 						line.clear();
-						yStart = element.y;
 					}
 					line.add(element);
+                    yStart = element.y;
 				}
 				if (!line.isEmpty()) {
 					pageString.add(string(line, leftMargin, lineHeight));
@@ -256,6 +261,34 @@ public class IText {
 						debugElement.element(path, pageNo, lineSpace, lineHeight, ++lineNo, line);
 				}
 			}
+	}
+	    
+	public List<List<String>> read(String... paths) throws IOException {
+		int pathCount = paths.length;
+		List<List<List<Element>>> files = new ArrayList<>();
+		for (String path : paths) {
+			List<List<Element>> file = new ArrayList<>();
+			files.add(file);
+			PdfReader reader = new PdfReader(path);
+			try (Closeable c = () -> reader.close()) {
+				int pageSize = reader.getNumberOfPages();
+				PdfReaderContentParser parser = new PdfReaderContentParser(reader);
+				for (int pageNo = 1; pageNo <= pageSize; ++pageNo)
+					file.add(parse(path, parser, pageNo));
+			}
+		}
+		// ファイル内の最もインデントの小さい行をレフトマージンとします。
+		float leftMargin = (float) files.stream()
+			.flatMap(List::stream)
+			.flatMap(List::stream)
+			.mapToDouble(e -> e.x)
+			.min().orElse(0);
+		List<List<String>> result = new ArrayList<>();
+		// 行に分割します。
+		for (int pathNo = 0; pathNo < pathCount; ++pathNo) {
+			String path = paths[pathNo];
+			List<List<Element>> pages = files.get(pathNo);
+            format(path, pages, leftMargin, result);
 		}
 		return result;
 	}
