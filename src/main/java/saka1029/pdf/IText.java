@@ -3,6 +3,7 @@ package saka1029.pdf;
 import java.io.Closeable;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -29,7 +30,7 @@ import com.itextpdf.text.pdf.parser.TextRenderInfo;
 
 public class IText {
 
-//	public static final PrintWriter OUT = new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8), true);
+	public static final PrintWriter OUT = new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8), true);
 
 	/**
 	 * A4のポイントサイズ 横約8.27 × 縦約11.69 インチ 595.44 x 841.68 ポイント
@@ -37,10 +38,6 @@ public class IText {
 	public static final float PAGE_WIDTH = 596F, PAGE_HEIGHT = 842F;
 
 	public record Element(float x, float y, float w, float h, String text) {
-		public int length() {
-			return text.length();
-		}
-		
 		static String i(float f) {
 		    return ("" + f).replaceFirst("\\.0$", "");
 		}
@@ -56,14 +53,14 @@ public class IText {
 	}
 
 	// オプションパラメータ
-	public String newLine = "\n";
-	public Charset outCharset = StandardCharsets.UTF_8;
-	public float lineRangeRate = 0.5F;
-	public float rubyRate = 0.6F;
-	public float defaultHeight = 10F;
-	public float defaultFreqLineSpace = 14F;
+	public String 改行文字 = "\n";
+	public Charset 出力文字セット = StandardCharsets.UTF_8;
+	public float 行高さ割合 = 0.5F;
+	public float ルビ割合 = 0.6F;
+	public float 行高さ規定値 = 10F;
+	public float 行間隔規定値 = 14F;
+	public Pattern ページ番号パターン = Pattern.compile("^\\s*\\S*\\s*-\\s*\\d+\\s*-\\s*$");
 	public DebugElement debugElement = null;
-	public Pattern pagePattern = Pattern.compile("^\\s*\\S*\\s*-\\s*\\d+\\s*-\\s*$");
 
 	// ローカルフィールド
 	public final boolean horizontal;
@@ -109,16 +106,19 @@ public class IText {
 		return page;
 	}
 
-	static final Comparator<Element> IN_PAGE_SORT = Comparator.comparing(Element::y)
+	static final Comparator<Element> ページ内ソート = Comparator.comparing(Element::y)
 			.thenComparing(Comparator.comparing(Element::x));
 
-	static final Comparator<Element> IN_LINE_SORT = Comparator.comparing(Element::x)
+	static final Comparator<Element> 行内ソート = Comparator.comparing(Element::x)
 			.thenComparing(Comparator.comparing(Element::y).reversed());
 
-	TreeMap<Float, TreeSet<Element>> splitLines(List<Element> page) {
-	    TreeMap<Float, TreeSet<Element>> result = new TreeMap<>();
-	    for (Element e : page) {
-	        result.computeIfAbsent(e.y, k -> new TreeSet<>(IN_LINE_SORT)).add(e);
+	List<TreeMap<Float, TreeSet<Element>>> 行分割(List<List<Element>> pages) {
+	    List<TreeMap<Float, TreeSet<Element>>> result = new ArrayList<>();
+	    for (List<Element> page : pages) {
+	    	TreeMap<Float, TreeSet<Element>> lines = new TreeMap<>();
+	    	result.add(lines);
+	    	for (Element e : page)
+				lines.computeIfAbsent(e.y, k -> new TreeSet<>(行内ソート)).add(e);
 	    }
 	    return result;
 	}
@@ -126,17 +126,34 @@ public class IText {
 	record 文書属性(float 左余白, float 行間隔, float 行高さ, float ルビ高さ) {
 	}
 	
-	文書属性 文書属性(TreeMap<Float, TreeSet<Element>> page) {
-        float 左余白 = Float.MAX_VALUE, 行間隔, 行高さ, ルビ高さ;
+	文書属性 文書属性(List<TreeMap<Float, TreeSet<Element>>> pages) {
+        float 左余白 = Float.MAX_VALUE;
+        Map<Float, Integer> 行間隔度数分布 = new HashMap<>();
         Map<Float, Integer> 行高さ度数分布 = new HashMap<>();
-        for (Entry<Float, TreeSet<Element>> line : page.entrySet()) {
-            左余白 = Math.min(左余白, line.getValue().first().x);
-            for (Element e : line.getValue()) {
-                
-            }
+        for (TreeMap<Float, TreeSet<Element>> page : pages) {
+			float prevY = Float.MIN_VALUE;
+			for (Entry<Float, TreeSet<Element>> line : page.entrySet()) {
+				左余白 = Math.min(左余白, line.getValue().first().x);
+				float y = line.getKey();
+				if (prevY != Float.MIN_VALUE)
+					行間隔度数分布.compute(y - prevY, (k , v) -> v == null ? 1 : v + 1);
+				prevY = y;
+				for (Element e : line.getValue())
+					行高さ度数分布.compute(e.h, (k, v) -> (v == null ? 0 : v) + e.text.length());
+			}
         }
-
-        return new 文書属性(左余白, 行間隔, 行高さ, ルビ高さ);
+        if (左余白 == Float.MAX_VALUE)
+        	左余白 = 0;
+        float 行間隔 = 行間隔度数分布.entrySet().stream()
+			.max(Entry.comparingByValue())
+			.map(Entry::getKey)
+			.orElse(行間隔規定値);
+        float 行高 = 行高さ度数分布.entrySet().stream()
+			.max(Entry.comparingByValue())
+			.map(Entry::getKey)
+			.orElse(行高さ規定値);
+        float ルビ高 = 行高 * ルビ割合;
+        return new 文書属性(左余白, 行間隔, 行高, ルビ高);
 	}
 
 	/**
@@ -170,7 +187,7 @@ public class IText {
 	 * @return Elementを連結した文字列を返します。
 	 */
 	String string(TreeSet<Element> line, float leftMargin, float charWidth) {
-		return pagePattern
+		return ページ番号パターン
 			.matcher(stringPrimitive(line, leftMargin, charWidth))
 			.replaceFirst("#$0");
 	}
@@ -188,7 +205,7 @@ public class IText {
 		        max = Math.max(max, y - prev);
 		    prev = y;
 		}
-		return max == -1000F ? defaultFreqLineSpace : max;
+		return max == -1000F ? 行間隔規定値 : max;
 //		TreeSet<Float> yValues = page.stream()
 //			.map(Element::y)
 //			.collect(Collectors.toCollection(TreeSet::new));
@@ -208,11 +225,11 @@ public class IText {
 	float freqHeight(List<Element> page) {
 		return page.stream()
 			.collect(Collectors.groupingBy(Element::h,
-				Collectors.summingInt(Element::length)))
+				Collectors.summingInt(e -> e.text.length())))
 			.entrySet().stream()
 			.max(Entry.comparingByValue())
 			.map(Entry::getKey)
-			.orElse(defaultHeight);
+			.orElse(行高さ規定値);
 	}
 
 	static String lineDirective(String path, int pageNo) {
@@ -223,44 +240,44 @@ public class IText {
 	 * Elementをフォーマットして文字列に変換します。
 	 */
 	public void format(String path, List<List<Element>> pages, float leftMargin, List<List<String>> result) {
-			for (int pageNo = 1, pageSize = pages.size(); pageNo <= pageSize; ++pageNo) {
-				List<Element> page = pages.get(pageNo - 1);
-				List<String> pageString = new ArrayList<>();
-				result.add(pageString);
-				pageString.add(lineDirective(path, pageNo));
-				Collections.sort(page, IN_PAGE_SORT);
-				// 同一行の範囲を求めます。
-				float lineSpace = freqLineSpace(page);
-				float lineRange = lineSpace * lineRangeRate;
-				// 文字高さの最頻値を求めます。
-				float lineHeight = freqHeight(page);
-				// ビ文字の最大の高さを求めます。
-				float rubyHeight = lineHeight * rubyRate;
-				float yStart = -100;
-				int lineNo = 0;
-				TreeSet<Element> line = new TreeSet<>(IN_LINE_SORT);
-				// lineHeight内に収まるテキストを1行にマージします。
-				for (Iterator<Element> it = page.iterator(); it.hasNext();) {
-					Element element = it.next();
-					if (element.h <= rubyHeight && element.text.matches("\\p{IsHiragana}*"))
-						continue;
-					if (element.y > yStart + lineRange) {
-						if (!line.isEmpty()) {
-							pageString.add(string(line, leftMargin, lineHeight));
-							if (debugElement != null)
-								debugElement.element(path, pageNo, lineSpace, lineHeight, ++lineNo, line);
-						}
-						line.clear();
+		for (int pageNo = 1, pageSize = pages.size(); pageNo <= pageSize; ++pageNo) {
+			List<Element> page = pages.get(pageNo - 1);
+			List<String> pageString = new ArrayList<>();
+			result.add(pageString);
+			pageString.add(lineDirective(path, pageNo));
+			Collections.sort(page, ページ内ソート);
+			// 同一行の範囲を求めます。
+			float lineSpace = freqLineSpace(page);
+			float lineRange = lineSpace * 行高さ割合;
+			// 文字高さの最頻値を求めます。
+			float lineHeight = freqHeight(page);
+			// ビ文字の最大の高さを求めます。
+			float rubyHeight = lineHeight * ルビ割合;
+			float yStart = -100;
+			int lineNo = 0;
+			TreeSet<Element> line = new TreeSet<>(行内ソート);
+			// lineHeight内に収まるテキストを1行にマージします。
+			for (Iterator<Element> it = page.iterator(); it.hasNext();) {
+				Element element = it.next();
+				if (element.h <= rubyHeight && element.text.matches("\\p{IsHiragana}*"))
+					continue;
+				if (element.y > yStart + lineRange) {
+					if (!line.isEmpty()) {
+						pageString.add(string(line, leftMargin, lineHeight));
+						if (debugElement != null)
+							debugElement.element(path, pageNo, lineSpace, lineHeight, ++lineNo, line);
 					}
-					line.add(element);
-                    yStart = element.y;
+					line.clear();
 				}
-				if (!line.isEmpty()) {
-					pageString.add(string(line, leftMargin, lineHeight));
-					if (debugElement != null)
-						debugElement.element(path, pageNo, lineSpace, lineHeight, ++lineNo, line);
-				}
+				line.add(element);
+				yStart = element.y;
 			}
+			if (!line.isEmpty()) {
+				pageString.add(string(line, leftMargin, lineHeight));
+				if (debugElement != null)
+					debugElement.element(path, pageNo, lineSpace, lineHeight, ++lineNo, line);
+			}
+		}
 	}
 	    
 	public List<List<String>> read(String... paths) throws IOException {
@@ -289,16 +306,18 @@ public class IText {
 			String path = paths[pathNo];
 			List<List<Element>> pages = files.get(pathNo);
             format(path, pages, leftMargin, result);
+			文書属性 dc = 文書属性(行分割(pages));
+			OUT.printf("%s: %s%n", path, dc);
 		}
 		return result;
 	}
 
 	public void テキスト変換(String outFile, String... inFiles) throws IOException {
 		List<List<String>> texts = read(inFiles);
-		try (PrintWriter wirter = new PrintWriter(new FileWriter(outFile, outCharset))) {
+		try (PrintWriter wirter = new PrintWriter(new FileWriter(outFile, 出力文字セット))) {
 			for (int i = 0, pageSize = texts.size(); i < pageSize; ++i)
 				for (String line : texts.get(i))
-					wirter.print(line + newLine);
+					wirter.print(line + 改行文字);
 		}
 	}
 
