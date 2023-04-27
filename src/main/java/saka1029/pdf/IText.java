@@ -311,6 +311,24 @@ public class IText {
 		}
 		return result;
 	}
+	
+	public List<List<String>> readString(String... paths) throws IOException {
+		List<List<String>> result = new ArrayList<>();
+		for (String path : paths) {
+			List<List<Element>> elements = new ArrayList<>();
+			PdfReader reader = new PdfReader(path);
+			try (Closeable c = () -> reader.close()) {
+				int pageSize = reader.getNumberOfPages();
+				PdfReaderContentParser parser = new PdfReaderContentParser(reader);
+				for (int pageNo = 1; pageNo <= pageSize; ++pageNo)
+					elements.add(parse(path, parser, pageNo));
+			}
+			List<TreeMap<Float, TreeSet<Element>>> lines = 行分割(elements);
+			文書属性 文書属性 = 文書属性(lines);
+			OUT.printf("%s: %s%n", path, 文書属性);
+		}
+		return result;
+	}
 
 	public void テキスト変換(String outFile, String... inFiles) throws IOException {
 		List<List<String>> texts = read(inFiles);
