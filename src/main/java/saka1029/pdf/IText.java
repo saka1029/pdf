@@ -55,7 +55,7 @@ public class IText {
 	// オプションパラメータ
 	public String 改行文字 = "\n";
 	public Charset 出力文字セット = StandardCharsets.UTF_8;
-	public float 行高さ割合 = 0.5F;
+	public float 行高さ範囲割合 = 0.5F;
 	public float ルビ割合 = 0.6F;
 	public float 行高さ規定値 = 10F;
 	public float 行間隔規定値 = 14F;
@@ -248,7 +248,7 @@ public class IText {
 			Collections.sort(page, ページ内ソート);
 			// 同一行の範囲を求めます。
 			float lineSpace = freqLineSpace(page);
-			float lineRange = lineSpace * 行高さ割合;
+			float lineRange = lineSpace * 行高さ範囲割合;
 			// 文字高さの最頻値を求めます。
 			float lineHeight = freqHeight(page);
 			// ビ文字の最大の高さを求めます。
@@ -323,9 +323,22 @@ public class IText {
 				for (int pageNo = 1; pageNo <= pageSize; ++pageNo)
 					elements.add(parse(path, parser, pageNo));
 			}
-			List<TreeMap<Float, TreeSet<Element>>> lines = 行分割(elements);
-			文書属性 文書属性 = 文書属性(lines);
+			List<TreeMap<Float, TreeSet<Element>>> pageLines = 行分割(elements);
+			文書属性 文書属性 = 文書属性(pageLines);
 			OUT.printf("%s: %s%n", path, 文書属性);
+			float 行高さ範囲 = 文書属性.行高さ * 行高さ範囲割合;
+			for (TreeMap<Float, TreeSet<Element>> lines : pageLines) {
+				Iterator<Entry<Float, TreeSet<Element>>> it = lines.entrySet().iterator();
+				if (!it.hasNext())
+					continue;
+				Entry<Float, TreeSet<Element>> first = it.next();
+				float firstY = first.getKey();
+				while (it.hasNext()) {
+					Entry<Float, TreeSet<Element>> next = it.next();
+					if (next.getKey() < firstY + 行高さ範囲)
+
+				}
+			}
 		}
 		return result;
 	}
