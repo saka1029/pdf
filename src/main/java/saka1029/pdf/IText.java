@@ -112,13 +112,13 @@ public class IText {
 	static final Comparator<Element> 行内ソート = Comparator.comparing(Element::x)
 			.thenComparing(Comparator.comparing(Element::y).reversed());
 
-	List<TreeMap<Float, TreeSet<Element>>> 行分割(List<List<Element>> pages) {
-	    List<TreeMap<Float, TreeSet<Element>>> result = new ArrayList<>();
+	List<TreeMap<Float, List<Element>>> 行分割(List<List<Element>> pages) {
+	    List<TreeMap<Float, List<Element>>> result = new ArrayList<>();
 	    for (List<Element> page : pages) {
-	    	TreeMap<Float, TreeSet<Element>> lines = new TreeMap<>();
+	    	TreeMap<Float, List<Element>> lines = new TreeMap<>();
 	    	result.add(lines);
 	    	for (Element e : page)
-				lines.computeIfAbsent(e.y, k -> new TreeSet<>(行内ソート)).add(e);
+				lines.computeIfAbsent(e.y, k -> new ArrayList<>()).add(e);
 	    }
 	    return result;
 	}
@@ -126,14 +126,14 @@ public class IText {
 	record 文書属性(float 左余白, float 行間隔, float 行高さ, float ルビ高さ) {
 	}
 	
-	文書属性 文書属性(List<TreeMap<Float, TreeSet<Element>>> pages) {
+	文書属性 文書属性(List<TreeMap<Float, List<Element>>> pages) {
         float 左余白 = Float.MAX_VALUE;
         Map<Float, Integer> 行間隔度数分布 = new HashMap<>();
         Map<Float, Integer> 行高さ度数分布 = new HashMap<>();
-        for (TreeMap<Float, TreeSet<Element>> page : pages) {
+        for (TreeMap<Float, List<Element>> page : pages) {
 			float prevY = Float.MIN_VALUE;
-			for (Entry<Float, TreeSet<Element>> line : page.entrySet()) {
-				左余白 = Math.min(左余白, line.getValue().first().x);
+			for (Entry<Float, List<Element>> line : page.entrySet()) {
+				左余白 = Math.min(左余白, line.getValue().get(0).x);
 				float y = line.getKey();
 				if (prevY != Float.MIN_VALUE)
 					行間隔度数分布.compute(y - prevY, (k , v) -> v == null ? 1 : v + 1);
@@ -323,21 +323,32 @@ public class IText {
 				for (int pageNo = 1; pageNo <= pageSize; ++pageNo)
 					elements.add(parse(path, parser, pageNo));
 			}
-			List<TreeMap<Float, TreeSet<Element>>> pageLines = 行分割(elements);
+			List<TreeMap<Float, List<Element>>> pageLines = 行分割(elements);
 			文書属性 文書属性 = 文書属性(pageLines);
 			OUT.printf("%s: %s%n", path, 文書属性);
 			float 行高さ範囲 = 文書属性.行高さ * 行高さ範囲割合;
-			for (TreeMap<Float, TreeSet<Element>> lines : pageLines) {
-				Iterator<Entry<Float, TreeSet<Element>>> it = lines.entrySet().iterator();
-				if (!it.hasNext())
-					continue;
-				Entry<Float, TreeSet<Element>> first = it.next();
-				float firstY = first.getKey();
-				while (it.hasNext()) {
-					Entry<Float, TreeSet<Element>> next = it.next();
-					if (next.getKey() < firstY + 行高さ範囲)
-
-				}
+			List<String> list = new ArrayList<>();
+			result.add(list);
+			int pageNo = 0;
+			for (TreeMap<Float, List<Element>> lines : pageLines) {
+                list.add("# file: %s page: %d%s".formatted(path, ++pageNo, 改行文字));
+			    float y = Float.MIN_VALUE;
+			    TreeSet<Element> sortedLine = new TreeSet<>(行内ソート);
+			    for (Entry<Float, List<Element>> line : lines.entrySet()) {
+			        List<Element> lineElements = line.getValue();
+                    if (lineElements.stream().allMatch(e -> e.h <= 文書属性.ルビ高さ && e.text.matches("\\p{IsHiragana}*")))
+                        continue;
+                    else if (y == Float.MIN_VALUE || line.getKey() <= y + 行高さ範囲)
+			            sortedLine.addAll(lineElements);
+			        else {
+			            if (!sortedLine.isEmpty())
+			                list.add(string(sortedLine, 文書属性.左余白, 文書属性.行高さ));
+			            sortedLine.clear();
+			        }
+                    y = line.getKey();
+			    }
+                if (!sortedLine.isEmpty())
+                    list.add(string(sortedLine, 文書属性.左余白, 文書属性.行高さ));
 			}
 		}
 		return result;
