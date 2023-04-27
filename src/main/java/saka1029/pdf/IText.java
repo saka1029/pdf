@@ -312,6 +312,14 @@ public class IText {
 		return result;
 	}
 	
+	void addLine(List<String> list, TreeSet<Element> sortedLine, String path, int pageNo, int lineNo, 文書属性 文書属性) {
+        if (!sortedLine.isEmpty())
+            list.add(string(sortedLine, 文書属性.左余白, 文書属性.行高さ));
+        if (debugElement != null)
+            debugElement.element(path, pageNo, 文書属性.行間隔, 文書属性.行高さ, ++lineNo, sortedLine);
+        sortedLine.clear();
+	}
+
 	public List<List<String>> readString(String... paths) throws IOException {
 		List<List<String>> result = new ArrayList<>();
 		for (String path : paths) {
@@ -331,31 +339,27 @@ public class IText {
 			result.add(list);
 			int pageNo = 0;
 			for (TreeMap<Float, List<Element>> lines : pageLines) {
-                list.add("# file: %s page: %d%s".formatted(path, ++pageNo, 改行文字));
+                list.add("# file: %s page: %d%s".formatted(Path.of(path).getFileName(), ++pageNo, 改行文字));
 			    float y = Float.MIN_VALUE;
 			    TreeSet<Element> sortedLine = new TreeSet<>(行内ソート);
+			    int lineNo = 0;
 			    for (Entry<Float, List<Element>> line : lines.entrySet()) {
 			        List<Element> lineElements = line.getValue();
                     if (lineElements.stream().allMatch(e -> e.h <= 文書属性.ルビ高さ && e.text.matches("\\p{IsHiragana}*")))
                         continue;
-                    else if (y == Float.MIN_VALUE || line.getKey() <= y + 行高さ範囲)
-			            sortedLine.addAll(lineElements);
-			        else {
-			            if (!sortedLine.isEmpty())
-			                list.add(string(sortedLine, 文書属性.左余白, 文書属性.行高さ));
-			            sortedLine.clear();
-			        }
+                    if (y != Float.MIN_VALUE && line.getKey() > y + 行高さ範囲)
+			            addLine(list, sortedLine, path, pageNo, ++lineNo, 文書属性);
+                    sortedLine.addAll(lineElements);
                     y = line.getKey();
 			    }
-                if (!sortedLine.isEmpty())
-                    list.add(string(sortedLine, 文書属性.左余白, 文書属性.行高さ));
+                addLine(list, sortedLine, path, pageNo, ++lineNo, 文書属性);
 			}
 		}
 		return result;
 	}
 
 	public void テキスト変換(String outFile, String... inFiles) throws IOException {
-		List<List<String>> texts = read(inFiles);
+		List<List<String>> texts = readString(inFiles);
 		try (PrintWriter wirter = new PrintWriter(new FileWriter(outFile, 出力文字セット))) {
 			for (int i = 0, pageSize = texts.size(); i < pageSize; ++i)
 				for (String line : texts.get(i))

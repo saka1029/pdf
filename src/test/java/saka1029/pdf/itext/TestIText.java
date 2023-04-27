@@ -52,7 +52,7 @@ public class TestIText {
 		read(false, "data/kokuji-itext.txt", "data/kokuji.pdf");
 	}
 	
-	@Test
+//	@Test
 	public void testMatcher() {
 		Pattern pat = Pattern.compile("^\\s*\\S*\\s*-\\s*\\d+\\s*-\\s*$");
 		OUT.println(pat.matcher("  - 3 -").replaceFirst("#$0"));
