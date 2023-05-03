@@ -148,8 +148,8 @@ public class TestTensuhyo {
 
 	@Test
 	public void test() throws IOException {
-//		copyOldPdf();
-//		copyOld();
+		copyOldPdf();
+		copyOld();
 		copyNew();
 	}
 

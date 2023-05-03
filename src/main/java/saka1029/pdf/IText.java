@@ -9,17 +9,14 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import com.itextpdf.awt.geom.Rectangle2D;
 import com.itextpdf.text.pdf.PdfReader;
@@ -163,7 +160,8 @@ public class IText {
 	 * @param charWidth 平均的な1文字の幅を指定します。
 	 * @return Elementを連結した文字列を返します。
 	 */
-	String stringPrimitive(TreeSet<Element> line, float leftMargin, float charWidth) {
+
+	String toString(TreeSet<Element> line, float leftMargin, float charWidth) {
 		StringBuilder sb = new StringBuilder();
 		float halfWidth = charWidth / 2;
 		float start = leftMargin;
@@ -177,35 +175,35 @@ public class IText {
 		return sb.toString();
 	}
 	
-	/**
-	 * 1行を表すElementのリストを文字列に変換します。
-	 * ページ番号行のパターン(pagePattern)に一致した場合は
-	 * 先頭に"#"を付与します。
-	 * @param line Elementのリストを指定します。
-	 * @param leftMargin 行先頭の無視するx座標値を指定します。
-	 * @param charWidth 平均的な1文字の幅を指定します。
-	 * @return Elementを連結した文字列を返します。
-	 */
-	String string(TreeSet<Element> line, float leftMargin, float charWidth) {
-		return ページ番号パターン
-			.matcher(stringPrimitive(line, leftMargin, charWidth))
-			.replaceFirst("#$0");
-	}
+//	/**
+//	 * 1行を表すElementのリストを文字列に変換します。
+//	 * ページ番号行のパターン(pagePattern)に一致した場合は
+//	 * 先頭に"#"を付与します。
+//	 * @param line Elementのリストを指定します。
+//	 * @param leftMargin 行先頭の無視するx座標値を指定します。
+//	 * @param charWidth 平均的な1文字の幅を指定します。
+//	 * @return Elementを連結した文字列を返します。
+//	 */
+//	String string(TreeSet<Element> line, float leftMargin, float charWidth) {
+//		return ページ番号パターン
+//			.matcher(stringPrimitive(line, leftMargin, charWidth))
+//			.replaceFirst("#$0");
+//	}
 
-	/**
-	 * 行の高さの最大値を求めます。
-	 */
-	float freqLineSpace(List<Element> page) {
-		TreeSet<Float> yValues = page.stream()
-			.map(Element::y)
-			.collect(Collectors.toCollection(TreeSet::new));
-		float max = -1000F, prev = -1000F;
-		for (float y : yValues) {
-		    if (prev != -1000F)
-		        max = Math.max(max, y - prev);
-		    prev = y;
-		}
-		return max == -1000F ? 行間隔規定値 : max;
+//	/**
+//	 * 行の高さの最大値を求めます。
+//	 */
+//	float freqLineSpace(List<Element> page) {
+//		TreeSet<Float> yValues = page.stream()
+//			.map(Element::y)
+//			.collect(Collectors.toCollection(TreeSet::new));
+//		float max = -1000F, prev = -1000F;
+//		for (float y : yValues) {
+//		    if (prev != -1000F)
+//		        max = Math.max(max, y - prev);
+//		    prev = y;
+//		}
+//		return max == -1000F ? 行間隔規定値 : max;
 //		TreeSet<Float> yValues = page.stream()
 //			.map(Element::y)
 //			.collect(Collectors.toCollection(TreeSet::new));
@@ -220,108 +218,108 @@ public class IText {
 //			.max(Entry.comparingByValue())
 //			.map(Entry::getKey)
 //			.orElse(defaultFreqLineSpace);
-	}
+//	}
 	
-	float freqHeight(List<Element> page) {
-		return page.stream()
-			.collect(Collectors.groupingBy(Element::h,
-				Collectors.summingInt(e -> e.text.length())))
-			.entrySet().stream()
-			.max(Entry.comparingByValue())
-			.map(Entry::getKey)
-			.orElse(行高さ規定値);
-	}
+//	float freqHeight(List<Element> page) {
+//		return page.stream()
+//			.collect(Collectors.groupingBy(Element::h,
+//				Collectors.summingInt(e -> e.text.length())))
+//			.entrySet().stream()
+//			.max(Entry.comparingByValue())
+//			.map(Entry::getKey)
+//			.orElse(行高さ規定値);
+//	}
+//
+//	static String lineDirective(String path, int pageNo) {
+//		return "#file: %s page: %d".formatted(Path.of(path).getFileName(), pageNo);
+//	}
 
-	static String lineDirective(String path, int pageNo) {
-		return "#file: %s page: %d".formatted(Path.of(path).getFileName(), pageNo);
-	}
-
-	/**
-	 * Elementをフォーマットして文字列に変換します。
-	 */
-	public void format(String path, List<List<Element>> pages, float leftMargin, List<List<String>> result) {
-		for (int pageNo = 1, pageSize = pages.size(); pageNo <= pageSize; ++pageNo) {
-			List<Element> page = pages.get(pageNo - 1);
-			List<String> pageString = new ArrayList<>();
-			result.add(pageString);
-			pageString.add(lineDirective(path, pageNo));
-			Collections.sort(page, ページ内ソート);
-			// 同一行の範囲を求めます。
-			float lineSpace = freqLineSpace(page);
-			float lineRange = lineSpace * 行高さ範囲割合;
-			// 文字高さの最頻値を求めます。
-			float lineHeight = freqHeight(page);
-			// ビ文字の最大の高さを求めます。
-			float rubyHeight = lineHeight * ルビ割合;
-			float yStart = -100;
-			int lineNo = 0;
-			TreeSet<Element> line = new TreeSet<>(行内ソート);
-			// lineHeight内に収まるテキストを1行にマージします。
-			for (Iterator<Element> it = page.iterator(); it.hasNext();) {
-				Element element = it.next();
-				if (element.h <= rubyHeight && element.text.matches("\\p{IsHiragana}*"))
-					continue;
-				if (element.y > yStart + lineRange) {
-					if (!line.isEmpty()) {
-						pageString.add(string(line, leftMargin, lineHeight));
-						if (debugElement != null)
-							debugElement.element(path, pageNo, lineSpace, lineHeight, ++lineNo, line);
-					}
-					line.clear();
-				}
-				line.add(element);
-				yStart = element.y;
-			}
-			if (!line.isEmpty()) {
-				pageString.add(string(line, leftMargin, lineHeight));
-				if (debugElement != null)
-					debugElement.element(path, pageNo, lineSpace, lineHeight, ++lineNo, line);
-			}
-		}
-	}
+//	/**
+//	 * Elementをフォーマットして文字列に変換します。
+//	 */
+//	public void format(String path, List<List<Element>> pages, float leftMargin, List<List<String>> result) {
+//		for (int pageNo = 1, pageSize = pages.size(); pageNo <= pageSize; ++pageNo) {
+//			List<Element> page = pages.get(pageNo - 1);
+//			List<String> pageString = new ArrayList<>();
+//			result.add(pageString);
+//			pageString.add(lineDirective(path, pageNo));
+//			Collections.sort(page, ページ内ソート);
+//			// 同一行の範囲を求めます。
+//			float lineSpace = freqLineSpace(page);
+//			float lineRange = lineSpace * 行高さ範囲割合;
+//			// 文字高さの最頻値を求めます。
+//			float lineHeight = freqHeight(page);
+//			// ビ文字の最大の高さを求めます。
+//			float rubyHeight = lineHeight * ルビ割合;
+//			float yStart = -100;
+//			int lineNo = 0;
+//			TreeSet<Element> line = new TreeSet<>(行内ソート);
+//			// lineHeight内に収まるテキストを1行にマージします。
+//			for (Iterator<Element> it = page.iterator(); it.hasNext();) {
+//				Element element = it.next();
+//				if (element.h <= rubyHeight && element.text.matches("\\p{IsHiragana}*"))
+//					continue;
+//				if (element.y > yStart + lineRange) {
+//					if (!line.isEmpty()) {
+//						pageString.add(string(line, leftMargin, lineHeight));
+//						if (debugElement != null)
+//							debugElement.element(path, pageNo, lineSpace, lineHeight, ++lineNo, line);
+//					}
+//					line.clear();
+//				}
+//				line.add(element);
+//				yStart = element.y;
+//			}
+//			if (!line.isEmpty()) {
+//				pageString.add(string(line, leftMargin, lineHeight));
+//				if (debugElement != null)
+//					debugElement.element(path, pageNo, lineSpace, lineHeight, ++lineNo, line);
+//			}
+//		}
+//	}
 	    
-	public List<List<String>> read(String... paths) throws IOException {
-		int pathCount = paths.length;
-		List<List<List<Element>>> files = new ArrayList<>();
-		for (String path : paths) {
-			List<List<Element>> file = new ArrayList<>();
-			files.add(file);
-			PdfReader reader = new PdfReader(path);
-			try (Closeable c = () -> reader.close()) {
-				int pageSize = reader.getNumberOfPages();
-				PdfReaderContentParser parser = new PdfReaderContentParser(reader);
-				for (int pageNo = 1; pageNo <= pageSize; ++pageNo)
-					file.add(parse(path, parser, pageNo));
-			}
-		}
-		// ファイル内の最もインデントの小さい行をレフトマージンとします。
-		float leftMargin = (float) files.stream()
-			.flatMap(List::stream)
-			.flatMap(List::stream)
-			.mapToDouble(e -> e.x)
-			.min().orElse(0);
-		List<List<String>> result = new ArrayList<>();
-		// 行に分割します。
-		for (int pathNo = 0; pathNo < pathCount; ++pathNo) {
-			String path = paths[pathNo];
-			List<List<Element>> pages = files.get(pathNo);
-            format(path, pages, leftMargin, result);
-			文書属性 dc = 文書属性(行分割(pages));
-			OUT.printf("%s: %s%n", path, dc);
-		}
-		return result;
-	}
+//	public List<List<String>> read(String... paths) throws IOException {
+//		int pathCount = paths.length;
+//		List<List<List<Element>>> files = new ArrayList<>();
+//		for (String path : paths) {
+//			List<List<Element>> file = new ArrayList<>();
+//			files.add(file);
+//			PdfReader reader = new PdfReader(path);
+//			try (Closeable c = () -> reader.close()) {
+//				int pageSize = reader.getNumberOfPages();
+//				PdfReaderContentParser parser = new PdfReaderContentParser(reader);
+//				for (int pageNo = 1; pageNo <= pageSize; ++pageNo)
+//					file.add(parse(path, parser, pageNo));
+//			}
+//		}
+//		// ファイル内の最もインデントの小さい行をレフトマージンとします。
+//		float leftMargin = (float) files.stream()
+//			.flatMap(List::stream)
+//			.flatMap(List::stream)
+//			.mapToDouble(e -> e.x)
+//			.min().orElse(0);
+//		List<List<String>> result = new ArrayList<>();
+//		// 行に分割します。
+//		for (int pathNo = 0; pathNo < pathCount; ++pathNo) {
+//			String path = paths[pathNo];
+//			List<List<Element>> pages = files.get(pathNo);
+//            format(path, pages, leftMargin, result);
+//			文書属性 dc = 文書属性(行分割(pages));
+//			OUT.printf("%s: %s%n", path, dc);
+//		}
+//		return result;
+//	}
 	
-	void addLine(List<String> list, TreeSet<Element> sortedLine, String path, int pageNo, int lineNo, 文書属性 文書属性) {
+	void addLine(List<String> pageList, TreeSet<Element> sortedLine, String path, int pageNo, int lineNo, 文書属性 文書属性) {
         if (!sortedLine.isEmpty())
-            list.add(string(sortedLine, 文書属性.左余白, 文書属性.行高さ));
+            pageList.add(toString(sortedLine, 文書属性.左余白, 文書属性.行高さ));
         if (debugElement != null)
             debugElement.element(path, pageNo, 文書属性.行間隔, 文書属性.行高さ, ++lineNo, sortedLine);
         sortedLine.clear();
 	}
 
-	public List<List<String>> readString(String... paths) throws IOException {
-		List<List<String>> result = new ArrayList<>();
+	public List<List<List<String>>> readString(String... paths) throws IOException {
+		List<List<List<String>>> result = new ArrayList<>();
 		for (String path : paths) {
 			List<List<Element>> elements = new ArrayList<>();
 			PdfReader reader = new PdfReader(path);
@@ -335,11 +333,13 @@ public class IText {
 			文書属性 文書属性 = 文書属性(pageLines);
 			OUT.printf("%s: %s%n", path, 文書属性);
 			float 行高さ範囲 = 文書属性.行高さ * 行高さ範囲割合;
-			List<String> list = new ArrayList<>();
-			result.add(list);
+			List<List<String>> fileList = new ArrayList<>();
+			result.add(fileList);
 			int pageNo = 0;
 			for (TreeMap<Float, List<Element>> lines : pageLines) {
-                list.add("# file: %s page: %d%s".formatted(Path.of(path).getFileName(), ++pageNo, 改行文字));
+				List<String> pageList = new ArrayList<>();
+				fileList.add(pageList);
+//                pageList.add("# file: %s page: %d".formatted(Path.of(path).getFileName(), ++pageNo));
 			    float y = Float.MIN_VALUE;
 			    TreeSet<Element> sortedLine = new TreeSet<>(行内ソート);
 			    int lineNo = 0;
@@ -348,22 +348,28 @@ public class IText {
                     if (lineElements.stream().allMatch(e -> e.h <= 文書属性.ルビ高さ && e.text.matches("\\p{IsHiragana}*")))
                         continue;
                     if (y != Float.MIN_VALUE && line.getKey() > y + 行高さ範囲)
-			            addLine(list, sortedLine, path, pageNo, ++lineNo, 文書属性);
+			            addLine(pageList, sortedLine, path, pageNo, ++lineNo, 文書属性);
                     sortedLine.addAll(lineElements);
                     y = line.getKey();
 			    }
-                addLine(list, sortedLine, path, pageNo, ++lineNo, 文書属性);
+                addLine(pageList, sortedLine, path, pageNo, ++lineNo, 文書属性);
 			}
 		}
 		return result;
 	}
 
 	public void テキスト変換(String outFile, String... inFiles) throws IOException {
-		List<List<String>> texts = readString(inFiles);
-		try (PrintWriter wirter = new PrintWriter(new FileWriter(outFile, 出力文字セット))) {
-			for (int i = 0, pageSize = texts.size(); i < pageSize; ++i)
-				for (String line : texts.get(i))
-					wirter.print(line + 改行文字);
+		List<List<List<String>>> fileList = readString(inFiles);
+		try (PrintWriter writer = new PrintWriter(new FileWriter(outFile, 出力文字セット))) {
+			for (int i = 0, fileCount = fileList.size(); i < fileCount; ++i) {
+				List<List<String>> pageList = fileList.get(i);
+				String fileName = Path.of(inFiles[i]).getFileName().toString();
+				for (int j = 0, pageSize = pageList.size(); j < pageSize; ++j) {
+					writer.printf("# file: %s page: %d%s", fileName, j + 1, 改行文字);
+					for (String line : pageList.get(j))
+						writer.printf("%s%s", ページ番号パターン.matcher(line).replaceFirst("#$0"), 改行文字);
+				}
+			}
 		}
 	}
 
