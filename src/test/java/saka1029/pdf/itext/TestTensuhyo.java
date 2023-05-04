@@ -108,7 +108,7 @@ public class TestTensuhyo {
 	static {
 //	    DEBUG_MAP.put(ファイル名, Map.of(ページ番号, Set.of(行番号...)));
 //	    DEBUG_MAP.put("0000196290.pdf", Map.of(9, Set.of(20, 21, 22, 26, 27, 28)));
-	    DEBUG_MAP.put("0000196314.pdf", Map.of(4, Set.of(3, 4, 5)));
+//	    DEBUG_MAP.put("0000196314.pdf", Map.of(4, Set.of(3, 4, 5)));
 	}
 	
 	/**
@@ -124,7 +124,7 @@ public class TestTensuhyo {
 	    }
 	};
 
-	static void copy(boolean horizontal, String src, String... dests) throws IOException {
+	static void copyNew(boolean horizontal, String src, String... dests) throws IOException {
 	    IText itext = new IText(horizontal);
 	    itext.debugElement = DEBUG_ELEMENT;
 	    itext.テキスト変換(src, dests);
@@ -135,14 +135,14 @@ public class TestTensuhyo {
 			Param param = param(TENSUHYO_DIR + paramFile);
 			String n = param.年度;
 			String dst = "data/comp/";
-			copy(true, dst + param.年度 + "-i-kokuji-new.txt", path(n, "i", param.医科告示PDF));
-			copy(true, dst + param.年度 + "-i-tuti-new.txt", path(n, "i", param.医科通知PDF));
-			copy(true, dst + param.年度 + "-s-kokuji-new.txt", path(n, "s", param.歯科告示PDF));
-			copy(true, dst + param.年度 + "-s-tuti-new.txt", path(n, "s", param.歯科通知PDF));
-			copy(true, dst + param.年度 + "-t-kokuji-new.txt", path(n, "t", param.調剤告示PDF));
-			copy(true, dst + param.年度 + "-t-tuti-new.txt", path(n, "t", param.調剤通知PDF));
-			copy(false, dst + param.年度 + "-k-kokuji-new.txt", path(n, "k", param.施設基準告示PDF));
-			copy(true, dst + param.年度 + "-k-tuti-new.txt", path(n, "k", param.施設基準通知PDF));
+			copyNew(true, dst + param.年度 + "-i-kokuji-new.txt", path(n, "i", param.医科告示PDF));
+			copyNew(true, dst + param.年度 + "-i-tuti-new.txt", path(n, "i", param.医科通知PDF));
+			copyNew(true, dst + param.年度 + "-s-kokuji-new.txt", path(n, "s", param.歯科告示PDF));
+			copyNew(true, dst + param.年度 + "-s-tuti-new.txt", path(n, "s", param.歯科通知PDF));
+			copyNew(true, dst + param.年度 + "-t-kokuji-new.txt", path(n, "t", param.調剤告示PDF));
+			copyNew(true, dst + param.年度 + "-t-tuti-new.txt", path(n, "t", param.調剤通知PDF));
+			copyNew(false, dst + param.年度 + "-k-kokuji-new.txt", path(n, "k", param.施設基準告示PDF));
+			copyNew(true, dst + param.年度 + "-k-tuti-new.txt", path(n, "k", param.施設基準通知PDF));
 		}
 	}
 

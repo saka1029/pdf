@@ -180,7 +180,7 @@ public class IText {
         sortedLine.clear();
 	}
 
-	public List<List<String>> readString(String path) throws IOException {
+	public List<List<String>> readText(String path) throws IOException {
         List<List<Element>> elements = new ArrayList<>();
         PdfReader reader = new PdfReader(path);
         try (Closeable c = () -> reader.close()) {
@@ -217,12 +217,12 @@ public class IText {
 
 	public void テキスト変換(String outFile, String... inFiles) throws IOException {
 		try (PrintWriter writer = new PrintWriter(new FileWriter(outFile, 出力文字セット))) {
-			for (int i = 0, fileCount = inFiles.length; i < fileCount; ++i) {
-			    List<List<String>> pageList = readString(inFiles[i]);
-				String fileName = Path.of(inFiles[i]).getFileName().toString();
-				for (int j = 0, pageSize = pageList.size(); j < pageSize; ++j) {
-					writer.printf("# file: %s page: %d%s", fileName, j + 1, 改行文字);
-					for (String line : pageList.get(j))
+			for (String inFile : inFiles) {
+			    List<List<String>> pageList = readText(inFile);
+				String fileName = Path.of(inFile).getFileName().toString();
+				for (int page = 0, pageSize = pageList.size(); page < pageSize; ++page) {
+					writer.printf("# file: %s page: %d%s", fileName, page + 1, 改行文字);
+					for (String line : pageList.get(page))
 						writer.printf("%s%s", ページ番号パターン.matcher(line).replaceFirst("#$0"), 改行文字);
 				}
 			}
