@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 import com.itextpdf.awt.geom.Rectangle2D;
@@ -28,6 +29,7 @@ import com.itextpdf.text.pdf.parser.TextRenderInfo;
 public class IText {
 
 	public static final PrintWriter OUT = new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8), true);
+	public static final Logger logger = Logger.getLogger(IText.class.getName());
 
 	/**
 	 * A4のポイントサイズ 横約8.27 × 縦約11.69 インチ 595.44 x 841.68 ポイント
@@ -117,7 +119,7 @@ public class IText {
 	    return result;
 	}
 	
-	record 文書属性(float 左余白, float 行間隔, float 行高さ, float ルビ高さ) {
+	record 文書属性(float 左余白, float 行間隔, float 行高さ, float 行高さ範囲, float ルビ高さ) {
 	}
 	
 	文書属性 文書属性(List<TreeMap<Float, List<Element>>> pages) {
@@ -146,8 +148,9 @@ public class IText {
 			.max(Entry.comparingByValue())
 			.map(Entry::getKey)
 			.orElse(行高さ規定値);
+        float 行高さ範囲 = 行高 * 行高さ範囲割合;
         float ルビ高 = 行高 * ルビ割合;
-        return new 文書属性(左余白, 行間隔, 行高, ルビ高);
+        return new 文書属性(左余白, 行間隔, 行高, 行高さ範囲, ルビ高);
 	}
 
 	/**
@@ -191,8 +194,7 @@ public class IText {
         }
         List<TreeMap<Float, List<Element>>> pageLines = 行分割(elements);
         文書属性 文書属性 = 文書属性(pageLines);
-        OUT.printf("%s: %s%n", path, 文書属性);
-        float 行高さ範囲 = 文書属性.行高さ * 行高さ範囲割合;
+        OUT.print("%s: %s%n".formatted(path, 文書属性));
         List<List<String>> result = new ArrayList<>();
         int pageNo = 0;
         for (TreeMap<Float, List<Element>> lines : pageLines) {
@@ -205,7 +207,7 @@ public class IText {
                 List<Element> lineElements = line.getValue();
                 if (lineElements.stream().allMatch(e -> e.h <= 文書属性.ルビ高さ && e.text.matches("\\p{IsHiragana}*")))
                     continue;
-                if (y != Float.MIN_VALUE && line.getKey() > y + 行高さ範囲)
+                if (y != Float.MIN_VALUE && line.getKey() > y + 文書属性.行高さ範囲)
                     addLine(pageList, sortedLine, path, pageNo, ++lineNo, 文書属性);
                 sortedLine.addAll(lineElements);
                 y = line.getKey();
