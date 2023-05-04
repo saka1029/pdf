@@ -28,6 +28,10 @@ import com.itextpdf.text.pdf.parser.TextRenderInfo;
 
 public class IText {
 
+//    static {
+//        System.setOut(new PrintStream(System.out, true, StandardCharsets.UTF_8));
+//        System.setErr(new PrintStream(System.err, true, StandardCharsets.UTF_8));
+//    }
 	public static final PrintWriter OUT = new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8), true);
 	public static final Logger logger = Logger.getLogger(IText.class.getName());
 
@@ -195,6 +199,7 @@ public class IText {
 		List<TreeMap<Float, List<Element>>> pageLines = 行分割(elements);
 		文書属性 文書属性 = 文書属性(pageLines);
 		OUT.printf("%s: %s%n", path, 文書属性);
+//		logger.info("%s: %s%n".formatted(path, 文書属性));
 		List<String> list = new ArrayList<>();
 		result.add(list);
 		int pageNo = 0;
