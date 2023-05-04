@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 import com.itextpdf.awt.geom.Rectangle2D;
@@ -28,6 +29,7 @@ import com.itextpdf.text.pdf.parser.TextRenderInfo;
 public class IText {
 
 	public static final PrintWriter OUT = new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8), true);
+	public static final Logger logger = Logger.getLogger(IText.class.getName());
 
 	/**
 	 * A4のポイントサイズ 横約8.27 × 縦約11.69 インチ 595.44 x 841.68 ポイント
@@ -117,7 +119,7 @@ public class IText {
 	    return result;
 	}
 	
-	record 文書属性(boolean 横書き, float 左余白, float 行間隔, float 行高さ, float 行高さ範囲, float ルビ高さ) {
+	public record 文書属性(boolean 横書き, float 左余白, float 行間隔, float 行高さ, float 行高さ範囲, float ルビ高さ) {
 	}
 	
 	文書属性 文書属性(List<TreeMap<Float, List<Element>>> pages) {
@@ -172,141 +174,6 @@ public class IText {
 		return sb.toString();
 	}
 	
-//	/**
-//	 * 1行を表すElementのリストを文字列に変換します。
-//	 * ページ番号行のパターン(pagePattern)に一致した場合は
-//	 * 先頭に"#"を付与します。
-//	 * @param line Elementのリストを指定します。
-//	 * @param leftMargin 行先頭の無視するx座標値を指定します。
-//	 * @param charWidth 平均的な1文字の幅を指定します。
-//	 * @return Elementを連結した文字列を返します。
-//	 */
-//	String string(TreeSet<Element> line, float leftMargin, float charWidth) {
-//		return ページ番号パターン
-//			.matcher(stringPrimitive(line, leftMargin, charWidth))
-//			.replaceFirst("#$0");
-//	}
-
-//	/**
-//	 * 行の高さの最大値を求めます。
-//	 */
-//	float freqLineSpace(List<Element> page) {
-//		TreeSet<Float> yValues = page.stream()
-//			.map(Element::y)
-//			.collect(Collectors.toCollection(TreeSet::new));
-//		float max = -1000F, prev = -1000F;
-//		for (float y : yValues) {
-//		    if (prev != -1000F)
-//		        max = Math.max(max, y - prev);
-//		    prev = y;
-//		}
-//		return max == -1000F ? 行間隔規定値 : max;
-//		TreeSet<Float> yValues = page.stream()
-//			.map(Element::y)
-//			.collect(Collectors.toCollection(TreeSet::new));
-//		Map<Float, Integer> histogram = new HashMap<>();
-//		float prev = -1000F;
-//		for (float y : yValues) {
-//			if (prev != -1000F)
-//				histogram.compute(y - prev, (k, v) -> v == null ? 1 : v + 1);
-//            prev = y;
-//		}
-//		return histogram.entrySet().stream()
-//			.max(Entry.comparingByValue())
-//			.map(Entry::getKey)
-//			.orElse(defaultFreqLineSpace);
-//	}
-	
-//	float freqHeight(List<Element> page) {
-//		return page.stream()
-//			.collect(Collectors.groupingBy(Element::h,
-//				Collectors.summingInt(e -> e.text.length())))
-//			.entrySet().stream()
-//			.max(Entry.comparingByValue())
-//			.map(Entry::getKey)
-//			.orElse(行高さ規定値);
-//	}
-
-//	static String lineDirective(String path, int pageNo) {
-//		return "#file: %s page: %d".formatted(Path.of(path).getFileName(), pageNo);
-//	}
-
-//	/**
-//	 * Elementをフォーマットして文字列に変換します。
-//	 */
-//	public void format(String path, List<List<Element>> pages, float leftMargin, List<List<String>> result) {
-//		for (int pageNo = 1, pageSize = pages.size(); pageNo <= pageSize; ++pageNo) {
-//			List<Element> page = pages.get(pageNo - 1);
-//			List<String> pageString = new ArrayList<>();
-//			result.add(pageString);
-//			pageString.add(lineDirective(path, pageNo));
-//			Collections.sort(page, ページ内ソート);
-//			// 同一行の範囲を求めます。
-//			float lineSpace = freqLineSpace(page);
-//			float lineRange = lineSpace * 行高さ範囲割合;
-//			// 文字高さの最頻値を求めます。
-//			float lineHeight = freqHeight(page);
-//			// ビ文字の最大の高さを求めます。
-//			float rubyHeight = lineHeight * ルビ割合;
-//			float yStart = -100;
-//			int lineNo = 0;
-//			TreeSet<Element> line = new TreeSet<>(行内ソート);
-//			// lineHeight内に収まるテキストを1行にマージします。
-//			for (Iterator<Element> it = page.iterator(); it.hasNext();) {
-//				Element element = it.next();
-//				if (element.h <= rubyHeight && element.text.matches("\\p{IsHiragana}*"))
-//					continue;
-//				if (element.y > yStart + lineRange) {
-//					if (!line.isEmpty()) {
-//						pageString.add(string(line, leftMargin, lineHeight));
-//						if (debugElement != null)
-//							debugElement.element(path, pageNo, lineSpace, lineHeight, ++lineNo, line);
-//					}
-//					line.clear();
-//				}
-//				line.add(element);
-//				yStart = element.y;
-//			}
-//			if (!line.isEmpty()) {
-//				pageString.add(string(line, leftMargin, lineHeight));
-//				if (debugElement != null)
-//					debugElement.element(path, pageNo, lineSpace, lineHeight, ++lineNo, line);
-//			}
-//		}
-//	}
-	    
-//	public List<List<String>> read(String... paths) throws IOException {
-//		int pathCount = paths.length;
-//		List<List<List<Element>>> files = new ArrayList<>();
-//		for (String path : paths) {
-//			List<List<Element>> file = new ArrayList<>();
-//			files.add(file);
-//			PdfReader reader = new PdfReader(path);
-//			try (Closeable c = () -> reader.close()) {
-//				int pageSize = reader.getNumberOfPages();
-//				PdfReaderContentParser parser = new PdfReaderContentParser(reader);
-//				for (int pageNo = 1; pageNo <= pageSize; ++pageNo)
-//					file.add(parse(path, parser, pageNo));
-//			}
-//		}
-//		// ファイル内の最もインデントの小さい行をレフトマージンとします。
-//		float leftMargin = (float) files.stream()
-//			.flatMap(List::stream)
-//			.flatMap(List::stream)
-//			.mapToDouble(e -> e.x)
-//			.min().orElse(0);
-//		List<List<String>> result = new ArrayList<>();
-//		// 行に分割します。
-//		for (int pathNo = 0; pathNo < pathCount; ++pathNo) {
-//			String path = paths[pathNo];
-//			List<List<Element>> pages = files.get(pathNo);
-//            format(path, pages, leftMargin, result);
-//			文書属性 dc = 文書属性(行分割(pages));
-//			OUT.printf("%s: %s%n", path, dc);
-//		}
-//		return result;
-//	}
-	
 	void addLine(List<String> list, TreeSet<Element> sortedLine, String path, int pageNo, int lineNo, 文書属性 文書属性) {
         if (!sortedLine.isEmpty())
             list.add(toString(sortedLine, 文書属性.左余白, 文書属性.行高さ));
@@ -315,7 +182,7 @@ public class IText {
         sortedLine.clear();
 	}
 
-	public List<List<String>> readString(String path) throws IOException {
+	public List<List<String>> read(String path) throws IOException {
 		List<List<String>> result = new ArrayList<>();
 		List<List<Element>> elements = new ArrayList<>();
 		PdfReader reader = new PdfReader(path);
@@ -332,7 +199,6 @@ public class IText {
 		result.add(list);
 		int pageNo = 0;
 		for (TreeMap<Float, List<Element>> lines : pageLines) {
-//			list.add("# file: %s page: %d%s".formatted(Path.of(path).getFileName(), ++pageNo, 改行文字));
 			float y = Float.MIN_VALUE;
 			TreeSet<Element> sortedLine = new TreeSet<>(行内ソート);
 			int lineNo = 0;
@@ -353,7 +219,7 @@ public class IText {
 	public void テキスト変換(String outFile, String... inFiles) throws IOException {
 		try (PrintWriter writer = new PrintWriter(new FileWriter(outFile, 出力文字セット))) {
 			for (String path : inFiles) {
-				List<List<String>> pages = readString(path);
+				List<List<String>> pages = read(path);
 				for (int i = 0, pageSize = pages.size(); i < pageSize; ++i) {
 					writer.printf("# file: %s page: %d%s", Path.of(path).getFileName(), i + 1, 改行文字);
 					for (String line : pages.get(i))
