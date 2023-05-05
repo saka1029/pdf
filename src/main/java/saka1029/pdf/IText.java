@@ -58,7 +58,7 @@ public class IText {
 	// オプションパラメータ
 	public String 改行文字 = "\n";
 	public Charset 出力文字セット = StandardCharsets.UTF_8;
-	public float 行高さ範囲割合 = 0.5F;
+	public float 行併合範囲割合 = 0.5F;
 	public float ルビ割合 = 0.6F;
 	public float 行高さ規定値 = 10F;
 	public float 行間隔規定値 = 14F;
@@ -123,7 +123,7 @@ public class IText {
 	    return result;
 	}
 	
-	public record 文書属性(boolean 横書き, float 左余白, float 行間隔, float 行高さ, float 行高さ範囲, float ルビ高さ) {
+	public record 文書属性(boolean 横書き, float 左余白, float 行間隔, float 行高さ, float 行併合範囲, float ルビ高さ) {
 	}
 	
 	文書属性 文書属性(List<TreeMap<Float, List<Element>>> pages) {
@@ -152,9 +152,9 @@ public class IText {
 			.max(Entry.comparingByValue())
 			.map(Entry::getKey)
 			.orElse(行高さ規定値);
-        float 行高さ範囲 = 行高さ * 行高さ範囲割合;
+        float 行併合範囲 = 行高さ * 行併合範囲割合;
         float ルビ高 = 行高さ * ルビ割合;
-        return new 文書属性(horizontal, 左余白, 行間隔, 行高さ, 行高さ範囲, ルビ高);
+        return new 文書属性(horizontal, 左余白, 行間隔, 行高さ, 行併合範囲, ルビ高);
 	}
 
 	/**
@@ -200,10 +200,11 @@ public class IText {
 		文書属性 文書属性 = 文書属性(pageLines);
 		OUT.printf("%s: %s%n", path, 文書属性);
 //		logger.info("%s: %s%n".formatted(path, 文書属性));
-		List<String> list = new ArrayList<>();
-		result.add(list);
 		int pageNo = 0;
 		for (TreeMap<Float, List<Element>> lines : pageLines) {
+		    ++pageNo;
+            List<String> linesString = new ArrayList<>();
+            result.add(linesString);
 			float y = Float.MIN_VALUE;
 			TreeSet<Element> sortedLine = new TreeSet<>(行内ソート);
 			int lineNo = 0;
@@ -211,12 +212,12 @@ public class IText {
 				List<Element> lineElements = line.getValue();
 				if (lineElements.stream().allMatch(e -> e.h <= 文書属性.ルビ高さ && e.text.matches("\\p{IsHiragana}*")))
 					continue;
-				if (y != Float.MIN_VALUE && line.getKey() > y + 文書属性.行高さ範囲)
-					addLine(list, sortedLine, path, pageNo, ++lineNo, 文書属性);
+				if (y != Float.MIN_VALUE && line.getKey() > y + 文書属性.行併合範囲)
+					addLine(linesString, sortedLine, path, pageNo, ++lineNo, 文書属性);
 				sortedLine.addAll(lineElements);
 				y = line.getKey();
 			}
-			addLine(list, sortedLine, path, pageNo, ++lineNo, 文書属性);
+			addLine(linesString, sortedLine, path, pageNo, ++lineNo, 文書属性);
 		}
 		return result;
 	}
