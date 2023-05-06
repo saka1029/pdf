@@ -36,7 +36,7 @@ public class TestIText {
 	    if (pageLine != null) {
             Set<Integer> lines = pageLine.get(pageNo);
             if (lines != null && lines.contains(lineNo))
-                OUT.printf("%s:%d:%d:%s:%s%n", path, pageNo, lineNo, attr, elements);
+                OUT.printf("%s:%d:%d:%s%n", path, pageNo, lineNo, elements);
 	    }
 	};
 	
