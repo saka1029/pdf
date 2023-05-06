@@ -58,10 +58,11 @@ public class IText {
 	// オプションパラメータ
 	public String 改行文字 = "\n";
 	public Charset 出力文字セット = StandardCharsets.UTF_8;
-	public float 行併合範囲割合 = 0.5F;
+	public float 行併合範囲割合 = 0.6F;
 	public float ルビ割合 = 0.6F;
 	public float 行高さ規定値 = 10F;
 	public float 行間隔規定値 = 14F;
+	public float ゼロ幅左シフト = 8F;
 	public Pattern ページ番号パターン = Pattern.compile("^\\s*\\S*\\s*-\\s*\\d+\\s*-\\s*$");
 	public DebugElement debugElement = null;
 
@@ -86,8 +87,9 @@ public class IText {
 				Rectangle2D.Float baseBox = info.getBaseline().getBoundingRectange();
 				float ascent = info.getAscentLine().getBoundingRectange().y;
 				float descent = info.getDescentLine().getBoundingRectange().y;
+				float shiftLeft = baseBox.width <= 0.9F ? ゼロ幅左シフト : 0F;
 				Element element = new Element(
-						round(horizontal ? baseBox.x : PAGE_HEIGHT - baseBox.y),
+						round((horizontal ? baseBox.x : PAGE_HEIGHT - baseBox.y) - shiftLeft),
 						round(horizontal ? PAGE_HEIGHT - baseBox.y : PAGE_WIDTH - baseBox.x),
 						round(baseBox.width),
 						round(ascent - descent), text);
