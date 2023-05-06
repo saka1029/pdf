@@ -107,8 +107,7 @@ public class TestTensuhyo {
 	static final Map<String, Map<Integer, Set<Integer>>> DEBUG_MAP = new HashMap<>();
 	static {
 //	    DEBUG_MAP.put(ファイル名, Map.of(ページ番号, Set.of(行番号...)));
-//	    DEBUG_MAP.put("0000196290.pdf", Map.of(9, Set.of(20, 21, 22, 26, 27, 28)));
-//	    DEBUG_MAP.put("0000196314.pdf", Map.of(4, Set.of(3, 4, 5)));
+	    DEBUG_MAP.put("0000196314.pdf", Map.of(5, Set.of(9, 10, 11, 12, 13, 14, 15)));
 	}
 	
 	/**
@@ -148,8 +147,8 @@ public class TestTensuhyo {
 
 	@Test
 	public void test() throws IOException {
-		copyOldPdf();
-		copyOld();
+//		copyOldPdf();
+//		copyOld();
 		copyNew();
 	}
 
