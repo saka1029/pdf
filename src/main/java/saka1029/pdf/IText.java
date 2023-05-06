@@ -63,6 +63,7 @@ public class IText {
 	public float 行高さ規定値 = 10F;
 	public float 行間隔規定値 = 14F;
 	public float ゼロ幅左シフト = 8F;
+	public Pattern ルビパターン = Pattern.compile("\\p{IsHiragana}*");
 	public Pattern ページ番号パターン = Pattern.compile("^\\s*\\S*\\s*-\\s*\\d+\\s*-\\s*$");
 	public DebugElement debugElement = null;
 
@@ -212,7 +213,7 @@ public class IText {
 			int lineNo = 0;
 			for (Entry<Float, List<Element>> line : lines.entrySet()) {
 				List<Element> lineElements = line.getValue();
-				if (lineElements.stream().allMatch(e -> e.h <= 文書属性.ルビ高さ && e.text.matches("\\p{IsHiragana}*")))
+				if (lineElements.stream().allMatch(e -> e.h <= 文書属性.ルビ高さ && ルビパターン.matcher(e.text).matches()))
 					continue;
 				if (y != Float.MIN_VALUE && line.getKey() > y + 文書属性.行併合範囲)
 					addLine(linesString, sortedLine, path, pageNo, ++lineNo, 文書属性);
