@@ -107,19 +107,20 @@ public class TestTensuhyo {
 	static final Map<String, Map<Integer, Set<Integer>>> DEBUG_MAP = new HashMap<>();
 	static {
 //	    DEBUG_MAP.put(ファイル名, Map.of(ページ番号, Set.of(行番号...)));
-	    DEBUG_MAP.put("0000196314.pdf", Map.of(5, Set.of(9, 10, 11, 12, 13, 14, 15)));
+	    DEBUG_MAP.put("0000196314.pdf", Map.of(5, Set.of(9, 10, 11, 12, 13, 14, 15),
+	                                           8, Set.of(15, 16, 17)));
 	}
 	
 	/**
 	 * DEBUG_MAPで指定した条件に合致する行(Elementの集合)を出力します。
 	 */
-	static final IText.DebugElement DEBUG_ELEMENT = (path, pageNo, lineSpace, lineHeight, lineNo, elements) -> {
+	static final IText.DebugElement DEBUG_ELEMENT = (path, pageNo, lineNo, 文書属性, elements) -> {
 	    String fileName = Path.of(path).getFileName().toString();
 	    Map<Integer, Set<Integer>> pageLine = DEBUG_MAP.get(fileName);
 	    if (pageLine != null) {
             Set<Integer> lines = pageLine.get(pageNo);
             if (lines != null && lines.contains(lineNo))
-                OUT.printf("%s:%d:lineSpace=%s:lineHeight=%s:%d:%s%n", path, pageNo, lineSpace, lineHeight, lineNo, elements);
+                OUT.printf("%s:%d:%d:%s:%s%n", path, pageNo, lineNo, 文書属性, elements);
 	    }
 	};
 

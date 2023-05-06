@@ -31,12 +31,12 @@ public class TestIText {
 	/**
 	 * DEBUG_MAPで指定した条件に合致する行(Elementの集合)を出力します。
 	 */
-	static final IText.DebugElement DEBUG_ELEMENT = (path, pageNo, lineSpace, lineHeight, lineNo, elements) -> {
+	static final IText.DebugElement DEBUG_ELEMENT = (path, pageNo, lineNo, attr, elements) -> {
 	    Map<Integer, Set<Integer>> pageLine = DEBUG_MAP.get(path);
 	    if (pageLine != null) {
             Set<Integer> lines = pageLine.get(pageNo);
             if (lines != null && lines.contains(lineNo))
-                OUT.printf("%s:%d:lineSpace=%s:lineHeight=%s:%d:%s%n", path, pageNo, lineSpace, lineHeight, lineNo, elements);
+                OUT.printf("%s:%d:%d:%s:%s%n", path, pageNo, lineNo, attr, elements);
 	    }
 	};
 	

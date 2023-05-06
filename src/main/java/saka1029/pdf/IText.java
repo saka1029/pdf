@@ -52,7 +52,7 @@ public class IText {
 	}
 	
 	public interface DebugElement {
-		void element(String path, int pageNo, float lineSpace, float lineHeight, int lineNo, TreeSet<Element> elements);
+		void element(String path, int pageNo, int lineNo, 文書属性 attr, TreeSet<Element> elements);
 	}
 
 	// オプションパラメータ
@@ -182,7 +182,7 @@ public class IText {
         if (!sortedLine.isEmpty())
             list.add(toString(sortedLine, 文書属性.左余白, 文書属性.行高さ));
         if (debugElement != null)
-            debugElement.element(path, pageNo, 文書属性.行間隔, 文書属性.行高さ, ++lineNo, sortedLine);
+            debugElement.element(path, pageNo, lineNo, 文書属性, sortedLine);
         sortedLine.clear();
 	}
 
