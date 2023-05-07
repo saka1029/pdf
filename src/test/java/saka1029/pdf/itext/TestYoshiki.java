@@ -3,6 +3,7 @@ package saka1029.pdf.itext;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
@@ -41,7 +42,8 @@ public class TestYoshiki {
 		"r0404.json"
 	};
 
-	static PrintWriter OUT = new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8), true);
+//	static PrintStream OUT = System.out;
+	static PrintStream OUT = new PrintStream(System.out, true, StandardCharsets.UTF_8);
 
 	static class Param {
 		String 元号, 年度;
@@ -114,7 +116,7 @@ public class TestYoshiki {
 		return Normalizer.normalize(s, Form.NFKD);
 	}
 
-	static final Pattern PAT = Pattern.compile("\\s*\\(?(?:別紙)?様式(\\d+)(?:の(\\d+))?\\)?\\s+.*");
+	static final Pattern PAT = Pattern.compile("\\s*\\(?(?:別紙)?様式\\s*(\\d+)(?:\\s*の\\s*(\\d+))?(?:\\s*の\\s*(\\d+))?\\)?(?:\\s+(.*))?");
 
 	static void copy(boolean horizontal, String out, String... srcs) throws IOException {
 	    IText itext = new IText(horizontal);
@@ -128,9 +130,8 @@ public class TestYoshiki {
 					Matcher m = PAT.matcher(n);
 					if (m.matches()) {
 						String b = m.group(1);
-						String c = m.group(2);
-						if (c != null)
-							b += "-" + c;
+						for (int j = 2; j <= 3 && m.group(j) != null; ++j)
+						    b += "-" + m.group(j);
 						OUT.printf("%d:%s:%s%n", i + 1, b, line.trim());
 					}
 				}
@@ -168,6 +169,17 @@ public class TestYoshiki {
 		OUT.println("NFD:" + nfd);
 		OUT.println("NFKC:" + nfkc);
 		OUT.println("NFKD:" + nfkd);
+	}
+	
+	@Test
+	public void testPAT() {
+	    Matcher m = PAT.matcher("別紙様式2の3の4");
+	    if (m.matches()) {
+	        OUT.println("group count:" + m.groupCount());
+	        for (int i = 1; i <= m.groupCount(); ++i)
+                OUT.println("group(" + i + "):" + m.group(i));
+	    }
+	    
 	}
 
 }
