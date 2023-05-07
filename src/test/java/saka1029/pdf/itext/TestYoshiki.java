@@ -16,6 +16,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.junit.Test;
 
@@ -112,6 +114,8 @@ public class TestYoshiki {
 		return Normalizer.normalize(s, Form.NFKD);
 	}
 
+	static final Pattern PAT = Pattern.compile("\\s*\\(?(?:別紙)?様式(\\d+)(?:の(\\d+))?\\)?");
+
 	static void copy(boolean horizontal, String out, String... srcs) throws IOException {
 	    IText itext = new IText(horizontal);
 	    itext.debugElement = DEBUG_ELEMENT;
@@ -121,8 +125,14 @@ public class TestYoshiki {
 			for (int i = 0, pageSize = text.size(); i < pageSize; ++i) {
 				for (String line : text.get(i)) {
 					String n = normalize(line);
-					if (n.matches("\\s*\\(?別紙様式\\d+(の\\d+)\\)?"))
-						OUT.println(line);
+					Matcher m = PAT.matcher(n);
+					if (m.matches()) {
+						String b = m.group(1);
+						String c = m.group(2);
+						if (c != null)
+							b += "-" + c;
+						OUT.printf("%d:%s:%s%n", i + 1, b, line);
+					}
 				}
 			}
 	    }
