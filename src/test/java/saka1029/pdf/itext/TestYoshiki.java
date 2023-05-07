@@ -10,7 +10,10 @@ import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.text.Normalizer;
+import java.text.Normalizer.Form;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -105,10 +108,24 @@ public class TestYoshiki {
 	    }
 	};
 
-	static void copy(boolean horizontal, String src, String... dests) throws IOException {
+	static String normalize(String s) {
+		return Normalizer.normalize(s, Form.NFKD);
+	}
+
+	static void copy(boolean horizontal, String out, String... srcs) throws IOException {
 	    IText itext = new IText(horizontal);
 	    itext.debugElement = DEBUG_ELEMENT;
-	    itext.テキスト変換(src, dests);
+//	    itext.テキスト変換(out, srcs);
+	    for (String src : srcs) {
+			List<List<String>> text = itext.read(src);
+			for (int i = 0, pageSize = text.size(); i < pageSize; ++i) {
+				for (String line : text.get(i)) {
+					String n = normalize(line);
+					if (n.matches("\\s*\\(?別紙様式\\d+(の\\d+)\\)?"))
+						OUT.println(line);
+				}
+			}
+	    }
 	}
 
 	static void copyNew() throws IOException {
@@ -126,8 +143,21 @@ public class TestYoshiki {
 
 	@Test
 	public void test() throws IOException {
-		copyOldPdf();
+//		copyOldPdf();
 		copyNew();
+	}
+	
+//	@Test
+	public void testHankaku() {
+		String z = "別紙様式６の３あいうアイウｱｲｳ①②⑴ ()（）";
+		String nfc = Normalizer.normalize(z, Form.NFC);
+		String nfd = Normalizer.normalize(z, Form.NFD);
+		String nfkc = Normalizer.normalize(z, Form.NFKC);
+		String nfkd = Normalizer.normalize(z, Form.NFKD);
+		OUT.println("NFC:" + nfc);
+		OUT.println("NFD:" + nfd);
+		OUT.println("NFKC:" + nfkc);
+		OUT.println("NFKD:" + nfkd);
 	}
 
 }
