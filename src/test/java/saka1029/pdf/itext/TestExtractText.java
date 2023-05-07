@@ -9,13 +9,10 @@ import java.nio.charset.StandardCharsets;
 
 import org.junit.Test;
 
-import com.itextpdf.awt.geom.Rectangle2D;
 import com.itextpdf.text.pdf.PdfReader;
-import com.itextpdf.text.pdf.parser.ImageRenderInfo;
 import com.itextpdf.text.pdf.parser.PdfReaderContentParser;
 import com.itextpdf.text.pdf.parser.SimpleTextExtractionStrategy;
 import com.itextpdf.text.pdf.parser.TextExtractionStrategy;
-import com.itextpdf.text.pdf.parser.TextRenderInfo;
 
 public class TestExtractText {
 
