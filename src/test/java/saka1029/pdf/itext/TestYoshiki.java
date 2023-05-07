@@ -114,7 +114,7 @@ public class TestYoshiki {
 		return Normalizer.normalize(s, Form.NFKD);
 	}
 
-	static final Pattern PAT = Pattern.compile("\\s*\\(?(?:別紙)?様式(\\d+)(?:の(\\d+))?\\)?");
+	static final Pattern PAT = Pattern.compile("\\s*\\(?(?:別紙)?様式(\\d+)(?:の(\\d+))?\\)?\\s+.*");
 
 	static void copy(boolean horizontal, String out, String... srcs) throws IOException {
 	    IText itext = new IText(horizontal);
@@ -131,7 +131,7 @@ public class TestYoshiki {
 						String c = m.group(2);
 						if (c != null)
 							b += "-" + c;
-						OUT.printf("%d:%s:%s%n", i + 1, b, line);
+						OUT.printf("%d:%s:%s%n", i + 1, b, line.trim());
 					}
 				}
 			}
@@ -146,7 +146,7 @@ public class TestYoshiki {
 			copy(true, dst + param.年度 + "-i-yoshiki-new.txt", path(n, "i", param.医科様式PDF));
 			copy(true, dst + param.年度 + "-s-yoshiki-new.txt", path(n, "s", param.歯科様式PDF));
 			copy(true, dst + param.年度 + "-t-yoshiki-new.txt", path(n, "t", param.調剤様式PDF));
-			copy(false, dst + param.年度 + "-k-kihon-new.txt", path(n, "k", param.施設基準基本様式PDF));
+			copy(true, dst + param.年度 + "-k-kihon-new.txt", path(n, "k", param.施設基準基本様式PDF));
 			copy(true, dst + param.年度 + "-k-tokkei-new.txt", path(n, "k", param.施設基準特掲様式PDF));
 		}
 	}
