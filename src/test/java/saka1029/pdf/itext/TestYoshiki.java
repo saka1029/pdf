@@ -119,9 +119,19 @@ public class TestYoshiki {
 	static final int 様式名出現最大行 = 3;
 	/**
 	 * 様式IDにマッチする正規表現。
-	 * グループ1:様式番号、グループ2:枝番1、グループ3:枝番2、グループ4:様式名称
+	 * グループ1:様式種類(別紙様式、様式、別添、別紙の区別)
+	 * グループ2:様式番号
+	 * グループ3:枝番1
+	 * グループ4:枝番2
+	 * グループ5:様式名称
 	 */
-	static final Pattern PAT = Pattern.compile("\\s*\\(?(?:別紙)?様式\\s*(\\d+)(?:\\s*の\\s*(\\d+))?(?:\\s*の\\s*(\\d+))?\\)?(?:\\s+(.*))?");
+	static final Pattern PAT = Pattern.compile("\\s*\\(?"
+	    + "((?:別紙)?様式|別添|別紙)\\s*"
+	    + "(\\d+)"
+	    + "(?:\\s*の\\s*(\\d+))?"
+	    + "(?:\\s*の\\s*(\\d+))?"
+	    + "\\)?"
+	    + "(?:\\s+(.*))?");
 
 	static void copy(boolean horizontal, String out, String... srcs) throws IOException {
 	    IText itext = new IText(horizontal);
@@ -136,14 +146,15 @@ public class TestYoshiki {
 					String n = normalize(line);
 					Matcher m = PAT.matcher(n);
 					if (m.matches()) {
-						String b = m.group(1);
-						for (int k = 2; k <= 3 && m.group(k) != null; ++k)
-						    b += "-" + m.group(k);
-						String title = m.group(4);
+						String type = m.group(1);
+						String id = m.group(2);
+						for (int k = 3; k <= 5 && m.group(k) != null; ++k)
+						    id += "-" + m.group(k);
+						String title = m.group(5);
 						if (title == null && j + 1 < page.size())
 						    title = page.get(j + 1);
 						title = title.replaceAll("\\s+", "");
-						OUT.printf("%d:%d:%s:%s:%s%n", i + 1, j + 1, b, title, line.trim());
+						OUT.printf("%d:%d:%s%s:%s:%s%n", i + 1, j + 1, type, id, title, line.trim());
 					}
 				}
 			}
