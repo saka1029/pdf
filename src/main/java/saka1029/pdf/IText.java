@@ -1,6 +1,7 @@
 package saka1029.pdf;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -8,6 +9,8 @@ import java.io.PrintWriter;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.text.Normalizer;
+import java.text.Normalizer.Form;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -17,6 +20,7 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.itextpdf.awt.geom.Rectangle2D;
@@ -34,6 +38,7 @@ public class IText {
 //    }
 	public static final PrintWriter OUT = new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8), true);
 	public static final Logger logger = Logger.getLogger(IText.class.getName());
+	public static final String 既定改行文字 = "\n";
 
 	/**
 	 * A4のポイントサイズ 横約8.27 × 縦約11.69 インチ 595.44 x 841.68 ポイント
@@ -56,7 +61,7 @@ public class IText {
 	}
 
 	// オプションパラメータ
-	public String 改行文字 = "\n";
+	public String 改行文字 = 既定改行文字;
 	public Charset 出力文字セット = StandardCharsets.UTF_8;
 	public float 行併合範囲割合 = 0.6F;
 	public float ルビ割合 = 0.6F;
@@ -238,6 +243,15 @@ public class IText {
 		}
 	}
 	
+	public int 様式名出現最大行 = 3;
+	public Pattern 様式IDパターン = Pattern.compile("\\s*\\(?"
+	    + "((?:別紙)?様式|別添|別紙)\\s*"
+	    + "(\\d+)"
+	    + "(?:\\s*の\\s*(\\d+))?"
+	    + "(?:\\s*の\\s*(\\d+))?"
+	    + "\\)?"
+	    + "(?:\\s+(.*))?");
+
 	/**
 	 * <pre>
 	 * ../tensuhyo/data/in/01/k/pdf/betten/0000196315.pdf: 文書属性[横書き=true, 左余白=16.0, 行間隔=18.0, 行高さ=10.0, 行併合範囲=6.0, ルビ高さ=6.0]
@@ -253,8 +267,32 @@ public class IText {
 	 * 306:1:2:時間外対応加算の施設基準に係る届出書添付書類:様式２
 	 * </pre>
 	 */
-	public void 様式一覧() {
-	    
+	public void 様式一覧変換(String outFile, String... inFiles) throws IOException {
+	    try (PrintWriter writer = new PrintWriter(new File(outFile), StandardCharsets.UTF_8)) {
+            for (String inFile : inFiles) {
+                List<List<String>> pages = read(inFile);
+                writer.printf("#file:%s%s", inFile, 改行文字);
+                for (int i = 0, pageSize = pages.size(); i < pageSize; ++i) {
+                    List<String> page = pages.get(i);
+                    for (int j = 0, maxLine = Math.min(様式名出現最大行, page.size()); j < maxLine; ++j) {
+                        String line = page.get(j);
+                        String normalLine = Normalizer.normalize(line, Form.NFKD);
+                        Matcher m = 様式IDパターン.matcher(normalLine);
+                        if (m.matches()) {
+                            String type = m.group(1);
+                            String id = m.group(2);
+                            for (int k = 3; k <= 5 && m.group(k) != null; ++k)
+                                id += "-" + m.group(k);
+                            String title = m.group(5);
+                            if (title == null && j + 1 < page.size())
+                                title = page.get(j + 1);
+                            title = title.replaceAll("\\s+", "");
+                            writer.printf("%s,%s,%d,%d,%s%s", type, id, j + 1, j + 1, title, 改行文字);
+                        }
+                    }
+                }
+            }
+	    }
 	}
 
 }

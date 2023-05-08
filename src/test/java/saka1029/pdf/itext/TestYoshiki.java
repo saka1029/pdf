@@ -1,8 +1,8 @@
 package saka1029.pdf.itext;
 
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Reader;
@@ -99,18 +99,18 @@ public class TestYoshiki {
 	                                           8, Set.of(15, 16, 17)));
 	}
 	
-	/**
-	 * DEBUG_MAPで指定した条件に合致する行(Elementの集合)を出力します。
-	 */
-	static final IText.DebugElement DEBUG_ELEMENT = (path, pageNo, lineNo, 文書属性, elements) -> {
-	    String fileName = Path.of(path).getFileName().toString();
-	    Map<Integer, Set<Integer>> pageLine = DEBUG_MAP.get(fileName);
-	    if (pageLine != null) {
-            Set<Integer> lines = pageLine.get(pageNo);
-            if (lines != null && lines.contains(lineNo))
-                OUT.printf("%s:%d:%d:%s%n", path, pageNo, lineNo, elements);
-	    }
-	};
+//	/**
+//	 * DEBUG_MAPで指定した条件に合致する行(Elementの集合)を出力します。
+//	 */
+//	static final IText.DebugElement DEBUG_ELEMENT = (path, pageNo, lineNo, 文書属性, elements) -> {
+//	    String fileName = Path.of(path).getFileName().toString();
+//	    Map<Integer, Set<Integer>> pageLine = DEBUG_MAP.get(fileName);
+//	    if (pageLine != null) {
+//            Set<Integer> lines = pageLine.get(pageNo);
+//            if (lines != null && lines.contains(lineNo))
+//                OUT.printf("%s:%d:%d:%s%n", path, pageNo, lineNo, elements);
+//	    }
+//	};
 
 	static String normalize(String s) {
 		return Normalizer.normalize(s, Form.NFKD);
@@ -135,29 +135,33 @@ public class TestYoshiki {
 
 	static void copy(boolean horizontal, String out, String... srcs) throws IOException {
 	    IText itext = new IText(horizontal);
-	    itext.debugElement = DEBUG_ELEMENT;
+//	    itext.debugElement = DEBUG_ELEMENT;
 //	    itext.テキスト変換(out, srcs);
-	    for (String src : srcs) {
-			List<List<String>> text = itext.read(src);
-			for (int i = 0, pageSize = text.size(); i < pageSize; ++i) {
-			    List<String> page = text.get(i);
-				for (int j = 0, maxLine = Math.min(様式名出現最大行, page.size()); j < maxLine; ++j) {
-				    String line = page.get(j);
-					String n = normalize(line);
-					Matcher m = PAT.matcher(n);
-					if (m.matches()) {
-						String type = m.group(1);
-						String id = m.group(2);
-						for (int k = 3; k <= 5 && m.group(k) != null; ++k)
-						    id += "-" + m.group(k);
-						String title = m.group(5);
-						if (title == null && j + 1 < page.size())
-						    title = page.get(j + 1);
-						title = title.replaceAll("\\s+", "");
-						OUT.printf("%d:%d:%s%s:%s:%s%n", i + 1, j + 1, type, id, title, line.trim());
-					}
-				}
-			}
+	    try (PrintWriter writer = new PrintWriter(new File(out), StandardCharsets.UTF_8)) {
+            for (String src : srcs) {
+                List<List<String>> text = itext.read(src);
+                writer.printf("#file:%s%s", src, IText.既定改行文字);
+                for (int i = 0, pageSize = text.size(); i < pageSize; ++i) {
+                    List<String> page = text.get(i);
+                    for (int j = 0, maxLine = Math.min(様式名出現最大行, page.size()); j < maxLine; ++j) {
+                        String line = page.get(j);
+                        String n = normalize(line);
+                        Matcher m = PAT.matcher(n);
+                        if (m.matches()) {
+                            String type = m.group(1);
+                            String id = m.group(2);
+                            for (int k = 3; k <= 5 && m.group(k) != null; ++k)
+                                id += "-" + m.group(k);
+                            String title = m.group(5);
+                            if (title == null && j + 1 < page.size())
+                                title = page.get(j + 1);
+                            title = title.replaceAll("\\s+", "");
+                            writer.printf("%s,%s,%d,%d,%s%s", type, id, j + 1, j + 1, title, IText.既定改行文字);
+//                            OUT.printf("%d:%d:%s%s:%s:%s%n", i + 1, j + 1, type, id, title, line.trim());
+                        }
+                    }
+                }
+            }
 	    }
 	}
 
