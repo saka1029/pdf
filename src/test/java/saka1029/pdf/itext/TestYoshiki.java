@@ -116,6 +116,11 @@ public class TestYoshiki {
 		return Normalizer.normalize(s, Form.NFKD);
 	}
 
+	static final int 様式名出現最大行 = 3;
+	/**
+	 * 様式IDにマッチする正規表現。
+	 * グループ1:様式番号、グループ2:枝番1、グループ3:枝番2、グループ4:様式名称
+	 */
 	static final Pattern PAT = Pattern.compile("\\s*\\(?(?:別紙)?様式\\s*(\\d+)(?:\\s*の\\s*(\\d+))?(?:\\s*の\\s*(\\d+))?\\)?(?:\\s+(.*))?");
 
 	static void copy(boolean horizontal, String out, String... srcs) throws IOException {
@@ -125,14 +130,20 @@ public class TestYoshiki {
 	    for (String src : srcs) {
 			List<List<String>> text = itext.read(src);
 			for (int i = 0, pageSize = text.size(); i < pageSize; ++i) {
-				for (String line : text.get(i)) {
+			    List<String> page = text.get(i);
+				for (int j = 0, maxLine = Math.min(様式名出現最大行, page.size()); j < maxLine; ++j) {
+				    String line = page.get(j);
 					String n = normalize(line);
 					Matcher m = PAT.matcher(n);
 					if (m.matches()) {
 						String b = m.group(1);
-						for (int j = 2; j <= 3 && m.group(j) != null; ++j)
-						    b += "-" + m.group(j);
-						OUT.printf("%d:%s:%s%n", i + 1, b, line.trim());
+						for (int k = 2; k <= 3 && m.group(k) != null; ++k)
+						    b += "-" + m.group(k);
+						String title = m.group(4);
+						if (title == null && j + 1 < page.size())
+						    title = page.get(j + 1);
+						title = title.replaceAll("\\s+", "");
+						OUT.printf("%d:%d:%s:%s:%s%n", i + 1, j + 1, b, title, line.trim());
 					}
 				}
 			}
@@ -171,7 +182,7 @@ public class TestYoshiki {
 		OUT.println("NFKD:" + nfkd);
 	}
 	
-	@Test
+//	@Test
 	public void testPAT() {
 	    Matcher m = PAT.matcher("別紙様式2の3の4");
 	    if (m.matches()) {
@@ -179,7 +190,6 @@ public class TestYoshiki {
 	        for (int i = 1; i <= m.groupCount(); ++i)
                 OUT.println("group(" + i + "):" + m.group(i));
 	    }
-	    
 	}
 
 }
