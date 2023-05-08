@@ -18,6 +18,7 @@ import java.util.Set;
 import org.junit.Test;
 
 import com.google.gson.Gson;
+import com.itextpdf.text.DocumentException;
 
 import saka1029.pdf.IText;
 
@@ -84,48 +85,28 @@ public class TestYoshiki {
 		}
 	}
 
-	/**
-	 * デバッグ出力するファイル名、ページ番号、行番号を指定します。
-	 */
-	static final Map<String, Map<Integer, Set<Integer>>> DEBUG_MAP = new HashMap<>();
-	static {
-//	    DEBUG_MAP.put(ファイル名, Map.of(ページ番号, Set.of(行番号...)));
-	    DEBUG_MAP.put("0000196314.pdf", Map.of(5, Set.of(9, 10, 11, 12, 13, 14, 15),
-	                                           8, Set.of(15, 16, 17)));
-	}
-	
-//	/**
-//	 * DEBUG_MAPで指定した条件に合致する行(Elementの集合)を出力します。
-//	 */
-//	static final IText.DebugElement DEBUG_ELEMENT = (path, pageNo, lineNo, 文書属性, elements) -> {
-//	    String fileName = Path.of(path).getFileName().toString();
-//	    Map<Integer, Set<Integer>> pageLine = DEBUG_MAP.get(fileName);
-//	    if (pageLine != null) {
-//            Set<Integer> lines = pageLine.get(pageNo);
-//            if (lines != null && lines.contains(lineNo))
-//                OUT.printf("%s:%d:%d:%s%n", path, pageNo, lineNo, elements);
-//	    }
-//	};
-
-	static String normalize(String s) {
-		return Normalizer.normalize(s, Form.NFKD);
+	static void copyNew(String outFile, String baseName, String... inFiles) throws IOException, DocumentException {
+        new IText(true).様式一覧変換(outFile, inFiles);
+        String outDir = outFile.replaceFirst(".txt", "");
+        Files.createDirectories(Path.of(outDir));
+        IText.ページ分割(outFile, outDir, f -> "%s/%s%s.pdf".formatted(outDir, baseName, f));
 	}
 
-	static void copyNew() throws IOException {
+	static void copyNew() throws IOException, DocumentException {
 		for (String paramFile : PARAMS) {
 			Param param = param(TENSUHYO_DIR + paramFile);
 			String n = param.年度;
 			String dst = "data/yoshiki/";
-			new IText(true).様式一覧変換(dst + param.年度 + "-i-yoshiki-new.txt", path(n, "i", param.医科様式PDF));
-			new IText(true).様式一覧変換(dst + param.年度 + "-s-yoshiki-new.txt", path(n, "s", param.歯科様式PDF));
-			new IText(true).様式一覧変換(dst + param.年度 + "-t-yoshiki-new.txt", path(n, "t", param.調剤様式PDF));
-			new IText(true).様式一覧変換(dst + param.年度 + "-k-kihon-new.txt", path(n, "k", param.施設基準基本様式PDF));
-			new IText(true).様式一覧変換(dst + param.年度 + "-k-tokkei-new.txt", path(n, "k", param.施設基準特掲様式PDF));
+			copyNew(dst + param.年度 + "-i-yoshiki-new.txt", "BESI", path(n, "i", param.医科様式PDF));
+			copyNew(dst + param.年度 + "-s-yoshiki-new.txt", "BESI", path(n, "s", param.歯科様式PDF));
+			copyNew(dst + param.年度 + "-t-yoshiki-new.txt", "BESI", path(n, "t", param.調剤様式PDF));
+			copyNew(dst + param.年度 + "-k-kihon-new.txt", "KIHON-BETTEN7-BESI", path(n, "k", param.施設基準基本様式PDF));
+			copyNew(dst + param.年度 + "-k-tokkei-new.txt", "TOKKEI-BETTEN2-BESI", path(n, "k", param.施設基準特掲様式PDF));
 		}
 	}
 
 	@Test
-	public void test() throws IOException {
+	public void test() throws IOException, DocumentException {
 //		copyOldPdf();
 		copyNew();
 	}
