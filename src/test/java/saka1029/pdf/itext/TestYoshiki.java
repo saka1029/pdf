@@ -1,10 +1,8 @@
 package saka1029.pdf.itext;
 
-import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.io.PrintWriter;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.CopyOption;
@@ -14,11 +12,8 @@ import java.nio.file.StandardCopyOption;
 import java.text.Normalizer;
 import java.text.Normalizer.Form;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.junit.Test;
 
@@ -116,65 +111,16 @@ public class TestYoshiki {
 		return Normalizer.normalize(s, Form.NFKD);
 	}
 
-	static final int 様式名出現最大行 = 3;
-	/**
-	 * 様式IDにマッチする正規表現。
-	 * グループ1:様式種類(別紙様式、様式、別添、別紙の区別)
-	 * グループ2:様式番号
-	 * グループ3:枝番1
-	 * グループ4:枝番2
-	 * グループ5:様式名称
-	 */
-	static final Pattern PAT = Pattern.compile("\\s*\\(?"
-	    + "((?:別紙)?様式|別添|別紙)\\s*"
-	    + "(\\d+)"
-	    + "(?:\\s*の\\s*(\\d+))?"
-	    + "(?:\\s*の\\s*(\\d+))?"
-	    + "\\)?"
-	    + "(?:\\s+(.*))?");
-
-	static void copy(boolean horizontal, String out, String... srcs) throws IOException {
-	    IText itext = new IText(horizontal);
-//	    itext.debugElement = DEBUG_ELEMENT;
-//	    itext.テキスト変換(out, srcs);
-	    try (PrintWriter writer = new PrintWriter(new File(out), StandardCharsets.UTF_8)) {
-            for (String src : srcs) {
-                List<List<String>> text = itext.read(src);
-                writer.printf("#file:%s%s", src, IText.既定改行文字);
-                for (int i = 0, pageSize = text.size(); i < pageSize; ++i) {
-                    List<String> page = text.get(i);
-                    for (int j = 0, maxLine = Math.min(様式名出現最大行, page.size()); j < maxLine; ++j) {
-                        String line = page.get(j);
-                        String n = normalize(line);
-                        Matcher m = PAT.matcher(n);
-                        if (m.matches()) {
-                            String type = m.group(1);
-                            String id = m.group(2);
-                            for (int k = 3; k <= 5 && m.group(k) != null; ++k)
-                                id += "-" + m.group(k);
-                            String title = m.group(5);
-                            if (title == null && j + 1 < page.size())
-                                title = page.get(j + 1);
-                            title = title.replaceAll("\\s+", "");
-                            writer.printf("%s,%s,%d,%d,%s%s", type, id, j + 1, j + 1, title, IText.既定改行文字);
-//                            OUT.printf("%d:%d:%s%s:%s:%s%n", i + 1, j + 1, type, id, title, line.trim());
-                        }
-                    }
-                }
-            }
-	    }
-	}
-
 	static void copyNew() throws IOException {
 		for (String paramFile : PARAMS) {
 			Param param = param(TENSUHYO_DIR + paramFile);
 			String n = param.年度;
 			String dst = "data/yoshiki/";
-			copy(true, dst + param.年度 + "-i-yoshiki-new.txt", path(n, "i", param.医科様式PDF));
-			copy(true, dst + param.年度 + "-s-yoshiki-new.txt", path(n, "s", param.歯科様式PDF));
-			copy(true, dst + param.年度 + "-t-yoshiki-new.txt", path(n, "t", param.調剤様式PDF));
-			copy(true, dst + param.年度 + "-k-kihon-new.txt", path(n, "k", param.施設基準基本様式PDF));
-			copy(true, dst + param.年度 + "-k-tokkei-new.txt", path(n, "k", param.施設基準特掲様式PDF));
+			new IText(true).様式一覧変換(dst + param.年度 + "-i-yoshiki-new.txt", path(n, "i", param.医科様式PDF));
+			new IText(true).様式一覧変換(dst + param.年度 + "-s-yoshiki-new.txt", path(n, "s", param.歯科様式PDF));
+			new IText(true).様式一覧変換(dst + param.年度 + "-t-yoshiki-new.txt", path(n, "t", param.調剤様式PDF));
+			new IText(true).様式一覧変換(dst + param.年度 + "-k-kihon-new.txt", path(n, "k", param.施設基準基本様式PDF));
+			new IText(true).様式一覧変換(dst + param.年度 + "-k-tokkei-new.txt", path(n, "k", param.施設基準特掲様式PDF));
 		}
 	}
 
@@ -196,15 +142,4 @@ public class TestYoshiki {
 		OUT.println("NFKC:" + nfkc);
 		OUT.println("NFKD:" + nfkd);
 	}
-	
-//	@Test
-	public void testPAT() {
-	    Matcher m = PAT.matcher("別紙様式2の3の4");
-	    if (m.matches()) {
-	        OUT.println("group count:" + m.groupCount());
-	        for (int i = 1; i <= m.groupCount(); ++i)
-                OUT.println("group(" + i + "):" + m.group(i));
-	    }
-	}
-
 }

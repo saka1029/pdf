@@ -271,26 +271,33 @@ public class IText {
 	    try (PrintWriter writer = new PrintWriter(new File(outFile), StandardCharsets.UTF_8)) {
             for (String inFile : inFiles) {
                 List<List<String>> pages = read(inFile);
-                writer.printf("#file:%s%s", inFile, 改行文字);
-                for (int i = 0, pageSize = pages.size(); i < pageSize; ++i) {
+                writer.printf("#file %s%s", inFile, 改行文字);
+                String type = null, id = null, title = null;
+                int startPage = -1;
+                int i = 0;
+                for (int pageSize = pages.size(); i < pageSize; ++i) {
                     List<String> page = pages.get(i);
                     for (int j = 0, maxLine = Math.min(様式名出現最大行, page.size()); j < maxLine; ++j) {
                         String line = page.get(j);
                         String normalLine = Normalizer.normalize(line, Form.NFKD);
                         Matcher m = 様式IDパターン.matcher(normalLine);
                         if (m.matches()) {
-                            String type = m.group(1);
-                            String id = m.group(2);
+                        	if (type != null)
+								writer.printf("%s,%s,%d,%d,%s%s", type, id, startPage, i, title, 改行文字);
+                            type = m.group(1);
+                            id = m.group(2);
+                            startPage = i + 1;
                             for (int k = 3; k <= 5 && m.group(k) != null; ++k)
-                                id += "-" + m.group(k);
-                            String title = m.group(5);
+                                id += "_" + m.group(k);
+                            title = m.group(5);
                             if (title == null && j + 1 < page.size())
                                 title = page.get(j + 1);
                             title = title.replaceAll("\\s+", "");
-                            writer.printf("%s,%s,%d,%d,%s%s", type, id, j + 1, j + 1, title, 改行文字);
                         }
                     }
                 }
+				if (type != null)
+					writer.printf("%s,%s,%d,%d,%s%s", type, id, startPage, i, title, 改行文字);
             }
 	    }
 	}
