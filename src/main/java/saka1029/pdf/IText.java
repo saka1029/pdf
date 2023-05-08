@@ -1,13 +1,16 @@
 package saka1029.pdf;
 
+import java.io.BufferedReader;
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.Normalizer;
 import java.text.Normalizer.Form;
@@ -24,6 +27,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.itextpdf.awt.geom.Rectangle2D;
+import com.itextpdf.text.Document;
+import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.pdf.PdfCopy;
+import com.itextpdf.text.pdf.PdfImportedPage;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.parser.ImageRenderInfo;
 import com.itextpdf.text.pdf.parser.PdfReaderContentParser;
@@ -39,6 +46,7 @@ public class IText {
 	public static final PrintWriter OUT = new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8), true);
 	public static final Logger logger = Logger.getLogger(IText.class.getName());
 	public static final String 既定改行文字 = "\n";
+	public static final Charset 既定文字セット = StandardCharsets.UTF_8;
 
 	/**
 	 * A4のポイントサイズ 横約8.27 × 縦約11.69 インチ 595.44 x 841.68 ポイント
@@ -268,7 +276,7 @@ public class IText {
 	 * </pre>
 	 */
 	public void 様式一覧変換(String outFile, String... inFiles) throws IOException {
-	    try (PrintWriter writer = new PrintWriter(new File(outFile), StandardCharsets.UTF_8)) {
+	    try (PrintWriter writer = new PrintWriter(new File(outFile), 既定文字セット)) {
             for (String inFile : inFiles) {
                 List<List<String>> pages = read(inFile);
                 writer.printf("#file %s%s", inFile, 改行文字);
@@ -301,5 +309,44 @@ public class IText {
             }
 	    }
 	}
-
+	
+	static void writePages(PdfReader reader, String outFile, int startPage, int endPage) throws DocumentException, IOException {
+//		Document document = new Document(reader.getPageSizeWithRotation(1));
+		Document document = new Document();
+		PdfCopy writer = new PdfCopy(document, new FileOutputStream(outFile));
+		try (Closeable w = () -> writer.close()) {
+			document.open();
+			try (Closeable d = () -> document.close()) {
+				for (int i = startPage; i <= endPage; ++i) {
+					PdfImportedPage page = writer.getImportedPage(reader, i);
+					writer.addPage(page);
+				}
+			}
+		}
+	}
+	
+	public static void ページ分割(String inFile, String outDir, String outFilePrefix) throws IOException, DocumentException {
+		try (BufferedReader reader = Files.newBufferedReader(Path.of(inFile), 既定文字セット)) {
+			PdfReader pdfReader = null;
+			String line;
+			while ((line = reader.readLine()) != null) {
+				if (line.startsWith("#file")) {
+					if (pdfReader != null)
+						pdfReader.close();
+					pdfReader = new PdfReader(line.replaceFirst("#file\\s*", ""));
+				} else if (line.strip().startsWith("#")) {
+					continue;
+				} else {
+					String[] fields = line.split(",", 5);
+					String outFile = outFilePrefix + fields[1];
+					int startPage = Integer.parseInt(fields[2]);
+					int endPage = Integer.parseInt(fields[3]);
+					writePages(pdfReader, outFile, startPage, endPage);
+				}
+			}
+			if (pdfReader != null)
+				pdfReader.close();
+		}
+		
+	}
 }
