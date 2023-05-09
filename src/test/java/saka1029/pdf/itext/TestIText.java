@@ -54,10 +54,10 @@ public class TestIText {
 	    itext.テキスト変換(out, ins);
 	}
 
-//	@Test
+	@Test
 	public void testRead() throws IOException {
-		read(true, "data/tuti-itext.txt", "data/tuti.pdf");
-		read(false, "data/kokuji-itext.txt", "data/kokuji.pdf");
+		read(true, "data/tuti-itext.txt", "tuti.pdf");
+		read(false, "data/kokuji-itext.txt", "kokuji.pdf");
 	}
 	
 //	@Test
@@ -87,9 +87,9 @@ public class TestIText {
 
 	@Test
 	public void testSplit() throws IOException, DocumentException {
-		String inFile = "data/0000196315.pdf";
-		String outFile12 = "data/0000196315-1-2.pdf";
-		String outFile34 = "data/0000196315-379-380.pdf";
+		String inFile = "0000196315.pdf";
+		String outFile12 = "0000196315-1-2.pdf";
+		String outFile34 = "0000196315-379-380.pdf";
 		PdfReader reader = new PdfReader(inFile);
 		try (Closeable r = () -> reader.close()) {
 			int n = reader.getNumberOfPages();
