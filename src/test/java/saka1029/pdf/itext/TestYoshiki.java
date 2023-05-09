@@ -11,9 +11,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.text.Normalizer;
 import java.text.Normalizer.Form;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 
 import org.junit.Test;
 
@@ -89,7 +86,7 @@ public class TestYoshiki {
         new IText(true).様式一覧変換(outFile, inFiles);
         String outDir = outFile.replaceFirst(".txt", "");
         Files.createDirectories(Path.of(outDir));
-        IText.ページ分割(outFile, outDir, f -> "%s/%s%s.pdf".formatted(outDir, baseName, f));
+        IText.ページ分割(outFile, outDir, outDir + "/" + baseName);
 	}
 
 	static void copyNew() throws IOException, DocumentException {

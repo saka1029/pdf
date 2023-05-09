@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.function.UnaryOperator;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -253,35 +252,21 @@ public class IText {
 	}
 	
 	public int 様式名出現最大行 = 3;
-	public Pattern 様式IDパターン = Pattern.compile("\\s*\\(?"
-	    + "((?:別紙)?様式|別添|別紙)\\s*"
-	    + "(\\d+)"
-	    + "(?:\\s*の\\s*(\\d+))?"
-	    + "(?:\\s*の\\s*(\\d+))?"
-	    + "\\)?"
-	    + "(?:\\s+(.*))?");
+	public Pattern 様式IDパターン = Pattern.compile(
+	    "\\s*\\(?("                         // group1:別紙様式3の4の5
+	    + "(?:(?:別紙)?様式|別添|別紙)\\s*"
+	    + "(\\d+)"                          // group2:3
+	    + "(?:\\s*の\\s*(\\d+))?"           // group3:4
+	    + "(?:\\s*の\\s*(\\d+))?"           // group4:5
+	    + ")\\)?"
+	    + "(?:\\s+(.*))?");                 // group5:様式名
 
-	/**
-	 * <pre>
-	 * ../tensuhyo/data/in/01/k/pdf/betten/0000196315.pdf: 文書属性[横書き=true, 左余白=16.0, 行間隔=18.0, 行高さ=10.0, 行併合範囲=6.0, ルビ高さ=6.0]
-	 * ページ:行:様式ID:様式名
-	 * 13:1:1:初・再診料の施設基準等:別添１
-	 * 22:1:2:入院基本料等の施設基準等:別添２
-	 * 54:1:3:入院基本料等加算の施設基準等:別添３
-	 * 128:1:4:特定入院料の施設基準等:別添４
-	 * 178:1:5:短期滞在手術等基本料の施設基準等:別添５
-	 * 179:1:6:＜通則＞:別添６
-	 * 301:1:7:基本診療料の施設基準等に係る届出書:別添７
-	 * 305:1:1:機能強化加算の施設基準に係る届出書添付書類:様式１
-	 * 306:1:2:時間外対応加算の施設基準に係る届出書添付書類:様式２
-	 * </pre>
-	 */
 	public void 様式一覧変換(String outFile, String... inFiles) throws IOException {
 	    try (PrintWriter writer = new PrintWriter(new File(outFile), 既定文字セット)) {
             for (String inFile : inFiles) {
                 List<List<String>> pages = read(inFile);
                 writer.printf("#file %s%s", inFile, 改行文字);
-                String type = null, id = null, title = null;
+                String name = null, id = null, title = null;
                 int startPage = -1;
                 int i = 0;
                 for (int pageSize = pages.size(); i < pageSize; ++i) {
@@ -291,9 +276,9 @@ public class IText {
                         String normalLine = Normalizer.normalize(line, Form.NFKD);
                         Matcher m = 様式IDパターン.matcher(normalLine);
                         if (m.matches()) {
-                        	if (type != null)
-								writer.printf("%s,%s,%d,%d,%s%s", type, id, startPage, i, title, 改行文字);
-                            type = m.group(1);
+                        	if (name != null)
+								writer.printf("%s,%s,%d,%d,%s%s", name, id, startPage, i, title, 改行文字);
+                            name = m.group(1);
                             id = m.group(2);
                             startPage = i + 1;
                             for (int k = 3; k <= 5 && m.group(k) != null; ++k)
@@ -305,8 +290,8 @@ public class IText {
                         }
                     }
                 }
-				if (type != null)
-					writer.printf("%s,%s,%d,%d,%s%s", type, id, startPage, i, title, 改行文字);
+				if (name != null)
+					writer.printf("%s,%s,%d,%d,%s%s", name, id, startPage, i, title, 改行文字);
             }
 	    }
 	}
@@ -326,7 +311,7 @@ public class IText {
 		}
 	}
 	
-	public static void ページ分割(String inFile, String outDir, UnaryOperator<String> makeOutFileName) throws IOException, DocumentException {
+	public static void ページ分割(String inFile, String outDir, String outFilePrefix) throws IOException, DocumentException {
 		try (BufferedReader reader = Files.newBufferedReader(Path.of(inFile), 既定文字セット)) {
 			PdfReader pdfReader = null;
 			String line;
@@ -339,7 +324,7 @@ public class IText {
 					continue;
 				} else {
 					String[] fields = line.split(",", 5);
-					String outFile = makeOutFileName.apply(fields[1]);
+					String outFile = outFilePrefix + fields[1] + ".pdf";
 					int startPage = Integer.parseInt(fields[2]);
 					int endPage = Integer.parseInt(fields[3]);
 					writePages(pdfReader, outFile, startPage, endPage);
