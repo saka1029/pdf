@@ -311,9 +311,6 @@ public class IText {
 		}
 	}
 	
-	public record 様式(String name, String id, int startPage, int endPage, String title) {
-	}
-	
 	public static List<様式> ページ分割(String inFile, String outDir, String outFilePrefix) throws IOException, DocumentException {
 	    List<様式> result = new ArrayList<>();
 		try (BufferedReader reader = Files.newBufferedReader(Path.of(inFile), 既定文字セット)) {

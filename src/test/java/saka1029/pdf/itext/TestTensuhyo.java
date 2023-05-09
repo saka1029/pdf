@@ -73,7 +73,7 @@ public class TestTensuhyo {
 		for (String paramFile : PARAMS) {
 			Param param = param(TENSUHYO_DIR + paramFile);
 			String n = param.年度;
-			Path dst = Path.of("data", "comp");
+			Path dst = Path.of("data", "tensuhyo");
 			copy(path(n, "i", param.医科告示PDF), dst);
 			copy(path(n, "i", param.医科通知PDF), dst);
 			copy(path(n, "s", param.歯科告示PDF), dst);
@@ -89,7 +89,7 @@ public class TestTensuhyo {
 		for (String paramFile : PARAMS) {
 			Param param = param(TENSUHYO_DIR + paramFile);
 			Path src = Path.of(TENSUHYO_DATA_DIR, param.年度);
-			Path dst = Path.of("data", "comp");
+			Path dst = Path.of("data", "tensuhyo");
 			Files.copy(src.resolve("i/txt/kokuji.txt"), dst.resolve(param.年度 + "-i-kokuji-old.txt"), OW);
 			Files.copy(src.resolve("i/txt/tuti.txt"), dst.resolve(param.年度 + "-i-tuti-old.txt"), OW);
 			Files.copy(src.resolve("s/txt/kokuji.txt"), dst.resolve(param.年度 + "-s-kokuji-old.txt"), OW);
@@ -134,7 +134,7 @@ public class TestTensuhyo {
 		for (String paramFile : PARAMS) {
 			Param param = param(TENSUHYO_DIR + paramFile);
 			String n = param.年度;
-			String dst = "data/comp/";
+			String dst = "data/tensuhyo/";
 			copy(true, dst + param.年度 + "-i-kokuji-new.txt", path(n, "i", param.医科告示PDF));
 			copy(true, dst + param.年度 + "-i-tuti-new.txt", path(n, "i", param.医科通知PDF));
 			copy(true, dst + param.年度 + "-s-kokuji-new.txt", path(n, "s", param.歯科告示PDF));
@@ -148,8 +148,8 @@ public class TestTensuhyo {
 
 	@Test
 	public void test() throws IOException {
-//		copyOldPdf();
-//		copyOld();
+		copyOldPdf();
+		copyOld();
 		copyNew();
 	}
 
