@@ -311,7 +311,11 @@ public class IText {
 		}
 	}
 	
-	public static void ページ分割(String inFile, String outDir, String outFilePrefix) throws IOException, DocumentException {
+	public record 様式(String name, String id, int startPage, int endPage, String title) {
+	}
+	
+	public static List<様式> ページ分割(String inFile, String outDir, String outFilePrefix) throws IOException, DocumentException {
+	    List<様式> result = new ArrayList<>();
 		try (BufferedReader reader = Files.newBufferedReader(Path.of(inFile), 既定文字セット)) {
 			PdfReader pdfReader = null;
 			String line;
@@ -324,14 +328,19 @@ public class IText {
 					continue;
 				} else {
 					String[] fields = line.split(",", 5);
-					String outFile = outFilePrefix + fields[1] + ".pdf";
+					String name = fields[0];
+					String id = fields[1];
+					String outFile = outFilePrefix + id + ".pdf";
+					String title = fields[4];
 					int startPage = Integer.parseInt(fields[2]);
 					int endPage = Integer.parseInt(fields[3]);
+					result.add(new 様式(name, id, startPage, endPage, title));
 					writePages(pdfReader, outFile, startPage, endPage);
 				}
 			}
 			if (pdfReader != null)
 				pdfReader.close();
 		}
+		return result;
 	}
 }
