@@ -333,6 +333,5 @@ public class IText {
 			if (pdfReader != null)
 				pdfReader.close();
 		}
-		
 	}
 }
