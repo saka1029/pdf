@@ -321,6 +321,8 @@ public class IText {
 					if (pdfReader != null)
 						pdfReader.close();
 					pdfReader = new PdfReader(line.replaceFirst("#file\\s*", ""));
+				} else if (line.isBlank()) {
+					continue;
 				} else if (line.strip().startsWith("#")) {
 					continue;
 				} else {

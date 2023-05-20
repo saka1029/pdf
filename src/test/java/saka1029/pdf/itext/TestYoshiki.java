@@ -108,6 +108,12 @@ public class TestYoshiki {
 		copyNew();
 	}
 	
+	@Test
+	public void testYoshikiName() {
+	    IText it = new IText(false);
+	    OUT.println(it.様式IDパターン.matcher("様式 54 の７").matches());
+	}
+
 //	@Test
 	public void testHankaku() {
 		String z = "別紙様式６の３あいうアイウｱｲｳ①②⑴ ()（）";
